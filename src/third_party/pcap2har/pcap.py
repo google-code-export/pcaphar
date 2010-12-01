@@ -1,10 +1,9 @@
-import os
-import sys
+import dns
+import dpkt
 import logging as log
 import StringIO
-import dpkt
-from pcaputil import ModifiedReader
 import tcp
+from pcaputil import ModifiedReader
 
 class TCPFlowAccumulator:
   '''
@@ -25,19 +24,15 @@ class TCPFlowAccumulator:
     pcap_reader = pcaputil.ModifiedReader
     '''
     self.flowdict = {}
-    self.errors = []
     debug_pkt_count = 0
     try:
       for pkt in pcap_reader:
         debug_pkt_count += 1
         # discard incomplete packets
         header = pkt[2]
-        if debug_pkt_count == 936:
-          pass
         if header.caplen != header.len:
           # packet is too short
           log.warning('discarding incomplete packet')
-          self.errors.append((pkt, 'packet is too short', debug_pkt_count))
         # parse packet
         try:
           dltoff = dpkt.pcap.dltoff
@@ -48,14 +43,14 @@ class TCPFlowAccumulator:
             eth = dpkt.ethernet.Ethernet(pkt[1])
           if isinstance(eth.data, dpkt.ip.IP):
             ip = eth.data
+            if dns.check_dns(pkt[0], ip):
+              continue
             if isinstance(ip.data, dpkt.tcp.TCP):
               # then it's a TCP packet process it
               tcppkt = tcp.Packet(pkt[0], pkt[1], eth, ip, ip.data)
               self.process_packet(tcppkt) # organize by socket
-          # TODO(lsong): UDP packet for DNS lookup.
         except dpkt.Error as error:
           log.warning(error)
-          self.errors.append((pkt, e, debug_pkt_count))
     except dpkt.dpkt.NeedData as error:
       log.warning(error)
       log.warning('A packet in the pcap file was too short, '
@@ -80,6 +75,9 @@ class TCPFlowAccumulator:
       return
     if (srcport == 443 or dstport == 443):
       log.warning("HTTPS packets are ignored.")
+      return
+    if (srcport == 53 or dstport == 53):
+      log.warning("DNS TCP packets are ignored.")
       return
 
     if (src, dst) in self.flowdict:

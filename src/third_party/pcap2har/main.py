@@ -5,7 +5,6 @@ Main program that converts pcaps to HAR's.
 '''
 
 import pcap
-import os
 import optparse
 import logging
 import sys
@@ -14,44 +13,49 @@ import httpsession
 import har
 import json
 
-# get cmdline args/options
-parser = optparse.OptionParser(usage='usage: %prog inputfile outputfile [options]')
-#parser.add_option('-d', '--directory', dest="dirname", default='flowdata', help="Directory to write flow files to.")
-options, args = parser.parse_args()
+def main(argv=None):
+  """The main."""
 
-# setup logs
-logging.basicConfig(filename='pcap2har.log', level=logging.DEBUG)
+  if argv is None:
+    argv = sys.argv
 
-# get filenames, or bail out with usage error
-if len(args) == 2:
+  # TODO(lsong): get cmdline args/options. For log level, log file?
+  parser = optparse.OptionParser(
+      usage='usage: %prog inputfile outputfile [options]')
+  dummy, args = parser.parse_args()
+
+  # setup logs
+  logging.basicConfig(level=logging.INFO)
+
+  # get filenames, or bail out with usage error
+  if len(args) == 2:
     inputfile, outputfile = args[0:2]
-else:
+  else:
     parser.print_help()
     sys.exit()
 
-logging.info("Processing %s", inputfile)
-flows = pcap.TCPFlowsFromFile(inputfile)
+  logging.info("Processing %s", inputfile)
+  flows = pcap.TCPFlowsFromFile(inputfile)
 
-# generate HTTP Flows
-httpflows = []
-flow_count = 0
-for f in flows.flowdict.itervalues():
+  # generate HTTP Flows
+  httpflows = []
+  flow_count = 0
+  for flow in flows.flowdict.itervalues():
     try:
-        httpflows.append(http.Flow(f))
-        flow_count += 1
+      httpflows.append(http.Flow(flow))
+      flow_count += 1
     except http.Error as error:
-        logging.warning(error)
+      logging.warning(error)
 
-# put all message pairs in one list
-def combine_pairs(pairs, flow):
-    return pairs + flow.pairs
-pairs = reduce(combine_pairs, httpflows, [])
+  pairs = reduce(lambda x, y: x+y.pairs, httpflows, [])
+  logging.info("Flow=%d HTTP=%d", flow_count, len(pairs))
 
-logging.info("Flow=%d HTTP=%d" % (flow_count,len(pairs)))
-# parse HAR stuff
-session = httpsession.HTTPSession(pairs)
+  # parse HAR stuff
+  session = httpsession.HTTPSession(pairs)
 
-with open(outputfile, 'w') as f:
-    json.dump(session, f, cls=har.JsonReprEncoder, indent=2, encoding='utf8')
+  with open(outputfile, 'w') as outf:
+    json.dump(session, outf, cls=har.JsonReprEncoder, indent=2, encoding='utf8')
 
-pass
+
+if __name__ == '__main__':
+  sys.exit(main())
