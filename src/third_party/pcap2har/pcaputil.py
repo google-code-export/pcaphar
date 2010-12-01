@@ -3,7 +3,12 @@ Various small, useful functions which have no other home.
 '''
 
 import dpkt
-from socket import inet_ntoa
+
+def inet_ntoa(ip):
+  if len(ip) != 4:
+    raise ValueError("Incorrect IP")
+  return (str(ord(ip[0])) + "." + str(ord(ip[1])) + "." + str(ord(ip[2])) +
+          "." + str(ord(ip[3])))
 
 def friendly_tcp_flags(flags):
     '''
@@ -61,8 +66,6 @@ class ModifiedReader(object):
     """
     
     def __init__(self, fileobj):
-        self.name = fileobj.name
-        self.fd = fileobj.fileno()
         self.__f = fileobj
         buf = self.__f.read(dpkt.pcap.FileHdr.__hdr_len__)
         self.__fh = dpkt.pcap.FileHdr(buf)
@@ -76,9 +79,6 @@ class ModifiedReader(object):
         self.dloff = dpkt.pcap.dltoff[self.__fh.linktype]
         self.filter = ''
 
-    def fileno(self):
-        return self.fd
-    
     def datalink(self):
         return self.__fh.linktype
     
