@@ -74,7 +74,7 @@ class TCPFlowAccumulator:
       log.warning("hpvroom packets are ignored.")
       return
     if (srcport == 443 or dstport == 443):
-      log.warning("HTTPS packets are ignored.")
+      log.debug("HTTPS packets are ignored.")
       return
     if (srcport == 53 or dstport == 53):
       log.warning("DNS TCP packets are ignored.")
@@ -88,6 +88,7 @@ class TCPFlowAccumulator:
       self.flowdict[(dst, src)].add(pkt)
     else:
       #print '  making new dict entry as ', (src, dst)
+      log.debug("New flow: s:%d -> d:%d", srcport, dstport)
       newflow = tcp.Flow()
       newflow.add(pkt)
       self.flowdict[(src, dst)] = newflow

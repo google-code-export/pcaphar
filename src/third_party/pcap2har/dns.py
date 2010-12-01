@@ -27,7 +27,7 @@ def check_dns(timestamp, ip_packet):
   if isinstance(ip_packet.data, dpkt.udp.UDP):
     udp = ip_packet.data
     if udp.sport != 53 and udp.dport != 53:
-      logging.info("Unknow UDP port s:%d->d%d", udp.sport, udp.dport)
+      logging.debug("Unknow UDP port s:%d->d%d", udp.sport, udp.dport)
       return False
     dns = dpkt.dns.DNS(udp.data)
     if len(dns.qd) != 1:
