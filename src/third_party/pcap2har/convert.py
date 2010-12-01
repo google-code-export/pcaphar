@@ -11,7 +11,7 @@ import sys
 import http
 import httpsession
 import har
-import json
+import simplejson as json
 
 def convert(pcap_in, har_out):
   flows = pcap.TCPFlowsFromString(pcap_in)
@@ -23,10 +23,8 @@ def convert(pcap_in, har_out):
     try:
       httpflows.append(http.Flow(flow))
       flow_count += 1
-    except http.Error as error:
+    except http.Error, error:
       logging.warning(error)
-    except Exception as error:
-      logging.warning("Uncaught exception: %s", error)
 
   pairs = reduce(lambda x, y: x+y.pairs, httpflows, [])
   logging.info("Flow=%d HTTP=%d", flow_count, len(pairs))

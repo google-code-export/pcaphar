@@ -49,9 +49,9 @@ class TCPFlowAccumulator:
               # then it's a TCP packet process it
               tcppkt = tcp.Packet(pkt[0], pkt[1], eth, ip, ip.data)
               self.process_packet(tcppkt) # organize by socket
-        except dpkt.Error as error:
+        except dpkt.Error, error:
           log.warning(error)
-    except dpkt.dpkt.NeedData as error:
+    except dpkt.dpkt.NeedData, error:
       log.warning(error)
       log.warning('A packet in the pcap file was too short, '
                   'debug_pkt_count=%d', debug_pkt_count)

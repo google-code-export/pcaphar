@@ -28,9 +28,12 @@ import sys
 
 # add third_party directory to sys.path for global import
 path = os.path.join(os.path.dirname(__file__), "third_party")
-sys.path.insert(0, os.path.abspath(path))
+sys.path.append(os.path.abspath(path))
 dpkt_path = os.path.join(path, "dpkt")
-sys.path.insert(0, os.path.abspath(dpkt_path))
+sys.path.append(os.path.abspath(dpkt_path))
+simplejson_path = os.path.join(path, "simplejson")
+sys.path.append(os.path.abspath(simplejson_path))
+
 
 
 import StringIO
@@ -72,9 +75,10 @@ class Converter(webapp.RequestHandler):
     har_out = StringIO.StringIO()
     convert.convert(pcap_in, har_out)
     har_out_str = har_out.getvalue()
-    self.response.out.write('<html><body>')
-    self.response.out.write('HAR')
-    self.response.out.write('<a href=/download>download</a>')
+    self.response.out.write('<html><body>\n')
+    self.response.out.write('<a href=/ >home</a>\n')
+    self.response.out.write('<a href=/download>download</a>\n')
+    self.response.out.write('<hr>')
     self.response.out.write('<pre>')
     self.response.out.write(cgi.escape(har_out_str))
     self.response.out.write('</pre></body></html>')

@@ -94,12 +94,3 @@ class Flow:
       return False
     else:
       raise ValueError("tcp.Flow.samedir found a packet from the wrong flow")
-  def writeout_data(self, basename):
-    '''
-    writes out the data in the flows to two files named basename-fwd.dat and
-    basename-rev.dat.
-    '''
-    with open(basename + '-fwd.dat', 'wb') as afile:
-      afile.write(self.fwd.data)
-    with open(basename + '-rev.dat', 'wb') as afile:
-      afile.write(self.rev.data)

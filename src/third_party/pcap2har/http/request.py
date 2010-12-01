@@ -1,5 +1,6 @@
-import urlparse
+import cgi
 import http
+import urlparse
 from dpkt import http as dpkt_http
 
 class Request(http.Message):
@@ -20,7 +21,7 @@ class Request(http.Message):
                                    uri.query, uri.fragment)
     self.fullurl = fullurl.geturl()
     self.url, frag = urlparse.urldefrag(self.fullurl)
-    self.query = urlparse.parse_qs(uri.query)
+    self.query = cgi.parse_qs(uri.query)
 
   def json_repr(self):
     '''

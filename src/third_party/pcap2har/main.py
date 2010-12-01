@@ -11,7 +11,7 @@ import sys
 import http
 import httpsession
 import har
-import json
+import simplejson as json
 
 def main(argv=None):
   """The main."""
@@ -44,7 +44,7 @@ def main(argv=None):
     try:
       httpflows.append(http.Flow(flow))
       flow_count += 1
-    except http.Error as error:
+    except http.Error, error:
       logging.warning(error)
 
   pairs = reduce(lambda x, y: x+y.pairs, httpflows, [])
@@ -53,7 +53,12 @@ def main(argv=None):
   # parse HAR stuff
   session = httpsession.HTTPSession(pairs)
 
-  with open(outputfile, 'w') as outf:
+  try:
+    outf = open(outputfile, 'w')
+  except:
+    logging.error("File open filed. %s", outputfile)
+    outf = False
+  if outf:
     json.dump(session, outf, cls=har.JsonReprEncoder, indent=2, encoding='utf8')
 
 
