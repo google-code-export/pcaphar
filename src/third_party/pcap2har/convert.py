@@ -25,6 +25,8 @@ def convert(pcap_in, har_out):
       flow_count += 1
     except http.Error, error:
       logging.warning(error)
+    except Exception, error:
+      logging.warning(error)
 
   pairs = reduce(lambda x, y: x+y.pairs, httpflows, [])
   logging.info("Flow=%d HTTP=%d", flow_count, len(pairs))

@@ -36,12 +36,17 @@ def check_dns(timestamp, ip_packet):
     qd = dns.qd[0]
     dns_an = getattr(dns, 'an')
     if len(dns_an) == 0:
-      # Query only
+      # DNS query
       if qd.name not in __hostname_start__:
         __hostname_start__[qd.name] = {}
         __hostname_start__[qd.name]['start'] = timestamp
         __hostname_start__[qd.name]['connected'] = 0
+
+    # DNS response
     for an in dns_an:
+      if qd.name not in __hostname_start__:
+        # Response to query before the "capture" starts. Ignore it.
+        continue
       if hasattr(an, "ip"):
         __dns_timing__[an.ip] = {}
         __dns_timing__[an.ip]['start'] = __hostname_start__[qd.name]['start']

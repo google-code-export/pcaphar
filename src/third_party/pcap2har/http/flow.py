@@ -96,11 +96,13 @@ def gather_messages(MessageClass, tcpdir):
       msg = MessageClass(tcpdir, pointer)
     except dpkt.Error, error: # if the message failed
       if pointer == 0: # if this is the first message
+        logging.warning("Invalid http -- raise exception")
         raise http.Error('Invalid http: %s' % error)
       else: # we're done parsing messages
         logging.warning("We got a dpkt.Error %s, but we are done." % error)
         break # out of the loop
     except:
+      logging.error("Unkown error.")
       raise
     # ok, all good
     messages.append(msg)
@@ -123,7 +125,10 @@ def parse_streams(request_stream, response_stream):
     requests = gather_messages(Request, request_stream)
     responses = gather_messages(Response, response_stream)
   except dpkt.UnpackError, error:
-    print 'failed to parse http: ', error
+    logging.warning(error)
+    return False, None, None
+  except:
+    logging.warning("Unkown error")
     return False, None, None
   else:
     return True, requests, responses

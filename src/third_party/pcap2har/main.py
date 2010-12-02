@@ -25,7 +25,13 @@ def main(argv=None):
   dummy, args = parser.parse_args()
 
   # setup logs
-  logging.basicConfig(level=logging.INFO)
+  formatter = logging.Formatter(
+      '%(asctime)s %(filename)s %(lineno)d %(levelname)s  %(message)s')
+  handler = logging.StreamHandler()
+  handler.setFormatter(formatter)
+  logger=logging.getLogger('')
+  logger.addHandler(handler)
+  logger.setLevel(logging.INFO)
 
   # get filenames, or bail out with usage error
   if len(args) == 2:
@@ -45,6 +51,8 @@ def main(argv=None):
       httpflows.append(http.Flow(flow))
       flow_count += 1
     except http.Error, error:
+      logging.warning(error)
+    except Exception, error:
       logging.warning(error)
 
   pairs = reduce(lambda x, y: x+y.pairs, httpflows, [])
