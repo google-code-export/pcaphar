@@ -36,11 +36,11 @@ sys.path.append(os.path.abspath(simplejson_path))
 
 
 
-import StringIO
 import cgi
+import logging
+import StringIO
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
-
 from pcap2har import convert
 
 har_out_str = ""
@@ -78,6 +78,11 @@ class Converter(webapp.RequestHandler):
     self.response.out.write('<html><body>\n')
     self.response.out.write('<a href=/ >home</a>\n')
     self.response.out.write('<a href=/download>download</a>\n')
+    harviewer_url = "http://www.softwareishard.com/har/viewer/?inputUrl="
+    inline_harp = "http://pcaphar.appspot.com/inline.harp"
+    self.response.out.write('<a href=')
+    self.response.out.write(harviewer_url + inline_harp)
+    self.response.out.write('>HarViewer</a>')
     self.response.out.write('<hr>')
     self.response.out.write('<pre>')
     self.response.out.write(cgi.escape(har_out_str))
@@ -92,11 +97,11 @@ class Converter(webapp.RequestHandler):
 class Download(webapp.RequestHandler):
   """
   Dowland handler.
-  
+
   TODO(lsong): The converted HAR is shared across requests. Latest convert will
   overwrite the content. Find a way to save the content for a session.
   """
-   
+
   def get(self):
     """
     Process the download.
@@ -107,10 +112,15 @@ class Download(webapp.RequestHandler):
       self.response.out.write('Empty')
       self.response.out.write('</body></html>')
     else:
-      headers = self.response.headers
-      headers['Content-Type'] = 'text/plain'
-      headers['Content-disposition'] = 'attachment; filename=har.har'
-      self.response.out.write(har_out_str)
+      if self.request.path == "/inline.harp":
+        self.response.out.write("onInputData(")
+        self.response.out.write(har_out_str)
+        self.response.out.write(");")
+      else:
+        headers = self.response.headers
+        headers['Content-Type'] = 'text/plain'
+        headers['Content-disposition'] = 'attachment; filename=har.har'
+        self.response.out.write(har_out_str)
 
 
 def main():
@@ -120,7 +130,9 @@ def main():
   application = webapp.WSGIApplication(
       [('/', MainPage),
        ('/convert', Converter),
-       ('/download', Download),],
+       ('/download', Download),
+       ('/inline.harp', Download),
+       ],
       debug=True)
   run_wsgi_app(application)
 

@@ -16,12 +16,13 @@ class Flow:
   * handshake = None or (syn, synack, ack) or False. None while a handshake is
     still being searched for, False when we've given up on finding it.
   '''
-  def __init__(self):
+  def __init__(self, dns):
     self.fwd = Direction(self)
     self.rev = Direction(self)
     self.handshake = None
     self.socket = None
     self.packets = []
+    self.dns = dns
   def add(self, pkt):
     '''
     called for every packet coming in, instead of iterating through a list

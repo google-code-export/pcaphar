@@ -24,6 +24,7 @@ class TCPFlowAccumulator:
     pcap_reader = pcaputil.ModifiedReader
     '''
     self.flowdict = {}
+    self.dns = dns.DNS()
     debug_pkt_count = 0
     try:
       for pkt in pcap_reader:
@@ -44,7 +45,7 @@ class TCPFlowAccumulator:
             eth = dpkt.ethernet.Ethernet(pkt[1])
           if isinstance(eth.data, dpkt.ip.IP):
             ip = eth.data
-            if dns.check_dns(pkt[0], ip):
+            if self.dns.check_dns(pkt[0], ip):
               continue
             if isinstance(ip.data, dpkt.tcp.TCP):
               # then it's a TCP packet process it
@@ -90,7 +91,7 @@ class TCPFlowAccumulator:
     else:
       #print '  making new dict entry as ', (src, dst)
       log.debug("New flow: s:%d -> d:%d", srcport, dstport)
-      newflow = tcp.Flow()
+      newflow = tcp.Flow(self.dns)
       newflow.add(pkt)
       self.flowdict[(src, dst)] = newflow
 

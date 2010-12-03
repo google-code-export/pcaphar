@@ -1,4 +1,3 @@
-import dns
 import dpkt
 import http
 import logging
@@ -20,6 +19,7 @@ class Flow:
     '''
     tcpflow = tcp.Flow
     '''
+    self.dns = tcpflow.dns
     # try parsing it with forward as request dir
     success, requests, responses = parse_streams(tcpflow.fwd, tcpflow.rev)
     if not success:
@@ -52,7 +52,7 @@ class Flow:
           if tcpflow.packets[0].flags != dpkt.tcp.TH_SYN:
             logging.warning("First packet is not SYN.")
           req.ts_connect = tcpflow.packets[0].ts
-          req.dns_start_ts = dns.dsn_time_of_connect_to_host(req.host)
+          req.dns_start_ts = self.dns.dsn_time_of_connect_to_host(req.host)
           connected = True
         else:
           req.ts_connect = req.ts_start
