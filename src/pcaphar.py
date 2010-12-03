@@ -37,13 +37,21 @@ sys.path.append(os.path.abspath(simplejson_path))
 
 
 import cgi
+import hashlib
+import heapq
 import logging
 import StringIO
+import time
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 from pcap2har import convert
 
-har_out_str = ""
+# hash -> pcap input
+har_out_str_hash = {}
+
+# priority queue (time, hash), used to remove stale data.
+hash_queue = []
+
 class MainPage(webapp.RequestHandler):
   def get(self):
     self.response.out.write("""
@@ -64,13 +72,18 @@ class Converter(webapp.RequestHandler):
     """
     Process the uploaded PCAP file.
     """
-    global har_out_str
+    global har_out_str_hash
     pcap_in = self.request.get('upfile')
     if not pcap_in or pcap_in == "":
       self.response.out.write('<html><body>')
       self.response.out.write('Empty file to convert.')
       self.response.out.write('</body></html>')
       return
+
+    # Compute the hash
+    m = hashlib.md5()
+    m.update(pcap_in)
+    hash_str = m.hexdigest()
 
     url =  self.request.url
     path = self.request.path
@@ -81,11 +94,15 @@ class Converter(webapp.RequestHandler):
     har_out = StringIO.StringIO()
     convert.convert(pcap_in, har_out)
     har_out_str = har_out.getvalue()
+    har_out_str_hash[hash_str] = har_out_str
+    time_now = time.time()
+    heapq.heappush(hash_queue, (time_now, hash_str))
     self.response.out.write('<html><body>\n')
     self.response.out.write('<a href=/ >home</a>\n')
-    self.response.out.write('<a href=/download>download</a>\n')
+    download_link = '<a href=/download/d/' + hash_str+ '>download</a>\n'
+    self.response.out.write(download_link)
     harviewer_url = "/harviewer/index.html?inputUrl="
-    inline_harp = root + "/inline.harp"
+    inline_harp = root + "/download/i/"+hash_str
     self.response.out.write('<a href=')
     self.response.out.write(harviewer_url + inline_harp)
     self.response.out.write('>HarViewer</a>')
@@ -107,26 +124,39 @@ class Download(webapp.RequestHandler):
   TODO(lsong): The converted HAR is shared across requests. Latest convert will
   overwrite the content. Find a way to save the content for a session.
   """
-
-  def get(self):
+  def get(self, download, hash_str):
     """
     Process the download.
     """
-    global har_out_str
-    if har_out_str == "":
+    global har_out_str_hash
+
+    # Discard saved result older than one hour.
+    time_now = time.time()
+    logging.info("hash[0].ts=%f now=%f", hash_queue[0][0], time_now)
+    while hash_queue[0][0] + 3600 < time_now:
+      time_save, that_hash = heapq.heappop(hash_queue)
+      del har_out_str_hash[that_hash]
+
+    logging.info("hash=%s", hash_str)
+    if len(har_out_str_hash) == 0 or hash_str not in har_out_str_hash:
       self.response.out.write('<html><body>')
       self.response.out.write('Empty')
+      self.response.out.write('<hr>return <a href=/ >home</a>')
       self.response.out.write('</body></html>')
+      return
+
+    logging.info("path=%s", self.request.path)
+    if download == "i":
+      har_out_str = har_out_str_hash[hash_str]
+      self.response.out.write("onInputData(")
+      self.response.out.write(har_out_str)
+      self.response.out.write(");")
     else:
-      if self.request.path == "/inline.harp":
-        self.response.out.write("onInputData(")
-        self.response.out.write(har_out_str)
-        self.response.out.write(");")
-      else:
-        headers = self.response.headers
-        headers['Content-Type'] = 'text/plain'
-        headers['Content-disposition'] = 'attachment; filename=har.har'
-        self.response.out.write(har_out_str)
+      har_out_str = har_out_str_hash[hash_str]
+      headers = self.response.headers
+      headers['Content-Type'] = 'text/plain'
+      headers['Content-disposition'] = 'attachment; filename=har.har'
+      self.response.out.write(har_out_str)
 
 
 def main():
@@ -136,8 +166,7 @@ def main():
   application = webapp.WSGIApplication(
       [('/', MainPage),
        ('/convert', Converter),
-       ('/download', Download),
-       ('/inline.harp', Download),
+       (r'/download/(.*)/(.*)', Download),
        ],
       debug=True)
   run_wsgi_app(application)
