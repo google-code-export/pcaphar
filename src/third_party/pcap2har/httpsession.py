@@ -43,19 +43,19 @@ class Entry:
     self.response = response
     self.page_ref = ''
     self.ts_start = request.ts_connect
-    self.started_datetime = datetime.fromtimestamp(request.ts_connect)
     ended_datetime = datetime.fromtimestamp(response.ts_end)
     # calculate other timings
     self.time_blocked = -1
     self.time_dnsing = -1
     if request.dns_start_ts != -1:
-      self.started_datetime = datetime.fromtimestamp(request.dns_start_ts)
+      self.ts_start = request.dns_start_ts
       dns_sec = request.ts_connect - request.dns_start_ts
       if dns_sec < 0:
         logging.error("url=%s connct=%f dns=%f", request.url,
                       request.ts_connect, request.dns_start_ts)
       else:
         self.time_dnsing = int(dns_sec * 1000)
+    self.started_datetime = datetime.fromtimestamp(self.ts_start)
     self.time_connecting = ms_from_dpkt_time(
         request.ts_start - request.ts_connect)
     self.time_sending = \
@@ -216,6 +216,6 @@ class HTTPSession(object):
           'version': 'mumble'
         },
         'pages': self.page_tracker,
-        'entries': sorted(self.entries, key=lambda x: x.ts_start)
+        'entries': self.entries
       }
     }

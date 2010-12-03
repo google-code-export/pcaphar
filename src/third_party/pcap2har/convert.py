@@ -19,7 +19,8 @@ def convert(pcap_in, har_out):
   # generate HTTP Flows
   httpflows = []
   flow_count = 0
-  for flow in flows.flowdict.itervalues():
+  for flow in sorted(flows.flowdict.itervalues(),
+                     cmp=lambda x,y: cmp(x.start(), y.start())):
     try:
       httpflows.append(http.Flow(flow))
       flow_count += 1

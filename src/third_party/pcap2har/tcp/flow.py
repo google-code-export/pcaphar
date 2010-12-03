@@ -95,3 +95,6 @@ class Flow:
       return False
     else:
       raise ValueError("tcp.Flow.samedir found a packet from the wrong flow")
+
+  def start(self):
+    return self.packets[0].ts

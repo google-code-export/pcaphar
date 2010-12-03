@@ -15,6 +15,7 @@ __author__ = 'lsong@google.com (Libo Song)'
 import sys
 import dpkt
 import logging
+import math
 
 class DNS:
   """
@@ -55,7 +56,7 @@ class DNS:
       for an in dns_an:
         if qd.name not in self.__hostname_start__:
           # Response to query before the "capture" starts. Ignore it.
-          logging.info("unknown hostname in DNS answer: %s", qd.name)
+          logging.debug("unknown hostname in DNS answer: %s", qd.name)
           continue
         if hasattr(an, "ip"):
           hostname_timing = self.__hostname_start__[qd.name]
@@ -64,7 +65,7 @@ class DNS:
           hostname_timing['end'] = timestamp
           self.__dns_timing__[an.ip]['end'] = timestamp
           self.__dns_timing__[an.ip]['connected'] = 0
-          logging.info("DNS %s: %.3f", qd.name,
+          logging.debug("DNS %s: %.3f", qd.name,
                         timestamp - self.__dns_timing__[an.ip]['start'])
       return True
     return False
@@ -84,18 +85,21 @@ class DNS:
     return dns_start_ts
 
 
-  def dns_time_of_connect_to_host(self, host):
+  def dns_time_of_connect_to_host(self, host, connect_ts):
     """Get DNS qurey time for host.
 
     Note: If multiple DNS queries for the same hostname, the latest query
     time overrrides the pervious times.
     """
     dns_start_ts = -1
-    logging.info("check dns timing: %s (%d)", host,
-                 len(self.__hostname_start__))
-    if (host in self.__hostname_start__ and
-        self.__hostname_start__[host]['connected'] == 0):
-      self.__hostname_start__[host]['connected'] = 1
+    logging.debug("check dns timing: %s (%d)", host,
+                  len(self.__hostname_start__))
+    if host in self.__hostname_start__:
+      timing_connected =  self.__hostname_start__[host]['connected']
+      if timing_connected == 0:
+        self.__hostname_start__[host]['connected'] = connect_ts
+      elif math.fabs(timing_connected - connect_ts) > 0.1:
+        return -1
       dns_start_ts = self.__hostname_start__[host]['start']
-      logging.info("DNS timing: %s = %d", host, dns_start_ts)
+      logging.debug("DNS timing: %s = %d", host, dns_start_ts)
     return dns_start_ts

@@ -51,8 +51,10 @@ class Flow:
         if not connected:
           if tcpflow.packets[0].flags != dpkt.tcp.TH_SYN:
             logging.warning("First packet is not SYN.")
-          req.ts_connect = tcpflow.packets[0].ts
-          req.dns_start_ts = self.dns.dns_time_of_connect_to_host(req.host)
+          connect_ts = tcpflow.packets[0].ts
+          req.ts_connect = connect_ts
+          req.dns_start_ts = self.dns.dns_time_of_connect_to_host(req.host,
+                                                                  connect_ts)
           connected = True
         else:
           req.ts_connect = req.ts_start

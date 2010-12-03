@@ -70,16 +70,16 @@ class TCPFlowAccumulator:
     srcip, srcport = src
     dstip, dstport = dst
     if (srcport == 5223 or dstport == 5223):
-      log.warning("hpvirtgrp packets are ignored.")
+      log.debug("hpvirtgrp packets are ignored.")
       return
     if (srcport == 5228 or dstport == 5228):
-      log.warning("hpvroom packets are ignored.")
+      log.debug("hpvroom packets are ignored.")
       return
     if (srcport == 443 or dstport == 443):
       log.debug("HTTPS packets are ignored.")
       return
     if (srcport == 53 or dstport == 53):
-      log.warning("DNS TCP packets are ignored.")
+      log.debug("DNS TCP packets are ignored.")
       return
 
     if (src, dst) in self.flowdict:
