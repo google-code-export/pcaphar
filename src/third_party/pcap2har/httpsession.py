@@ -42,19 +42,20 @@ class Entry:
     self.request = request
     self.response = response
     self.page_ref = ''
-    self.ts_start = int(request.ts_connect*1000)
+    self.ts_start = request.ts_connect
     self.started_datetime = datetime.fromtimestamp(request.ts_connect)
     ended_datetime = datetime.fromtimestamp(response.ts_end)
     # calculate other timings
     self.time_blocked = -1
     self.time_dnsing = -1
     if request.dns_start_ts != -1:
-      self.started_datetime = datetime.fromtimestamp(request.ts_connect)
+      self.started_datetime = datetime.fromtimestamp(request.dns_start_ts)
       dns_sec = request.ts_connect - request.dns_start_ts
       if dns_sec < 0:
         logging.error("url=%s connct=%f dns=%f", request.url,
                       request.ts_connect, request.dns_start_ts)
-      self.time_dnsing = int(dns_sec * 1000)
+      else:
+        self.time_dnsing = int(dns_sec * 1000)
     self.time_connecting = ms_from_dpkt_time(
         request.ts_start - request.ts_connect)
     self.time_sending = \
@@ -197,7 +198,7 @@ class HTTPSession(object):
       self.entries.append(entry)
 
     # Sort the entries on start
-    self.entries.sort(lambda x, y: int(x.ts_start - y.ts_start))
+    self.entries.sort(lambda x, y: cmp(x.ts_start, y.ts_start))
     self.user_agent = self.user_agents.dominant_user_agent()
   def json_repr(self):
     '''

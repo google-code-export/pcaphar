@@ -70,7 +70,7 @@ class DNS:
     return False
 
 
-  def dsn_time_of_connect_to_ip(self, dst_ip):
+  def dns_time_of_connect_to_ip(self, dst_ip):
     """Get DNS qurey time for resoulting IP address.
 
     Note: If multiple DNS queries resulted the same IP address, the latest query
@@ -84,7 +84,7 @@ class DNS:
     return dns_start_ts
 
 
-  def dsn_time_of_connect_to_host(self, host):
+  def dns_time_of_connect_to_host(self, host):
     """Get DNS qurey time for host.
 
     Note: If multiple DNS queries for the same hostname, the latest query
