@@ -4,5 +4,8 @@ runtime: python
 api_version: 1
 
 handlers:
+- url: /harviewer
+  static_dir: harviewer
+
 - url: /.*
   script: pcaphar.py

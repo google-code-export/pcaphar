@@ -72,14 +72,20 @@ class Converter(webapp.RequestHandler):
       self.response.out.write('</body></html>')
       return
 
+    url =  self.request.url
+    path = self.request.path
+    pos = url.find(path)
+    root =""
+    if pos != -1:
+      root = url[0:pos]
     har_out = StringIO.StringIO()
     convert.convert(pcap_in, har_out)
     har_out_str = har_out.getvalue()
     self.response.out.write('<html><body>\n')
     self.response.out.write('<a href=/ >home</a>\n')
     self.response.out.write('<a href=/download>download</a>\n')
-    harviewer_url = "http://www.softwareishard.com/har/viewer/?inputUrl="
-    inline_harp = "http://pcaphar.appspot.com/inline.harp"
+    harviewer_url = "/harviewer/index.html?inputUrl="
+    inline_harp = root + "/inline.harp"
     self.response.out.write('<a href=')
     self.response.out.write(harviewer_url + inline_harp)
     self.response.out.write('>HarViewer</a>')
