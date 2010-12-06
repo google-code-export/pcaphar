@@ -1,74 +1,110 @@
-#!/usr/bin/python
+# Copyright 2010 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-'''
-Main program that converts pcaps to HAR's.
-'''
 
-import pcap
-import optparse
-import logging
+"""
+Command line tool to convert PCAP file to HAR format.
+
+This is command line to for pcaphar app engine. A user can convert a PCAP file
+to HAR format file.
+"""
+
+__author__ = 'lsong@google.com (Libo Song)'
+
+import os
 import sys
-import http
-import httpsession
-import har
-import simplejson as json
+
+# add third_party directory to sys.path for global import
+path = os.path.join(os.path.dirname(__file__), "third_party")
+sys.path.append(os.path.abspath(path))
+dpkt_path = os.path.join(path, "dpkt")
+sys.path.append(os.path.abspath(dpkt_path))
+simplejson_path = os.path.join(path, "simplejson")
+sys.path.append(os.path.abspath(simplejson_path))
+
+
+
+import heapq
+import logging
+import StringIO
+import time
+from pcap2har import convert
+
+def PrintUsage():
+  print __file__, "[options] <pcap file> [<har file>]"
+  print "options: -l[diwe] log level"
+  print "         --port filter out port"
 
 def main(argv=None):
-  """The main."""
-
+  logging_level = logging.WARNING
+  filter_port = -1
   if argv is None:
     argv = sys.argv
+  filenames = []
+  idx = 1
+  while idx < len(argv):
+    if argv[idx] == '-h' or argv[idx] == '--help':
+      PrintUsage()
+      return 0
+    elif argv[idx] == '--port':
+      idx += 1
+      if idx >= len(argv):
+        PrintUsage()
+        return 1
+      filter_port = int(argv[idx])
+    elif argv[idx] == '-ld':
+      logging_level = logging.DEBUG
+    elif argv[idx] == '-li':
+      logging_level = logging.INFO
+    elif argv[idx] == '-lw':
+      logging_level = logging.WARN
+    elif argv[idx] == '-le':
+      logging_level = logging.ERROR
+    elif argv[idx][0:1] == '-':
+      print "Unknow option:", argv[idx]
+      PrintUsage()
+      return 1
+    else:
+      filenames.append(argv[idx])
+    idx += 1
 
-  # TODO(lsong): get cmdline args/options. For log level, log file?
-  parser = optparse.OptionParser(
-      usage='usage: %prog inputfile outputfile [options]')
-  dummy, args = parser.parse_args()
+  # set the logging level
+  logging.basicConfig(level=logging_level)
 
-  # setup logs
-  formatter = logging.Formatter(
-      '%(asctime)s %(filename)s %(lineno)d %(levelname)s  %(message)s')
-  handler = logging.StreamHandler()
-  handler.setFormatter(formatter)
-  logger=logging.getLogger('')
-  logger.addHandler(handler)
-  logger.setLevel(logging.INFO)
-
-  # get filenames, or bail out with usage error
-  if len(args) == 2:
-    inputfile, outputfile = args[0:2]
+  if len(filenames) == 1:
+    pcap_file = filenames[0]
+    har_file = pcap_file + ".har"
+  elif len(filenames) == 2:
+    pcap_file = filenames[0]
+    har_file = filenames[1]
   else:
-    parser.print_help()
-    sys.exit()
+    PrintUsage()
+    return 1
 
-  logging.info("Processing %s", inputfile)
-  flows = pcap.TCPFlowsFromFile(inputfile)
-
-  # generate HTTP Flows
-  httpflows = []
-  flow_count = 0
-  for flow in flows.flowdict.itervalues():
-    try:
-      httpflows.append(http.Flow(flow))
-      flow_count += 1
-    except http.Error, error:
-      logging.warning(error)
-    except Exception, error:
-      logging.warning(error)
-
-  pairs = reduce(lambda x, y: x+y.pairs, httpflows, [])
-  logging.info("Flow=%d HTTP=%d", flow_count, len(pairs))
-
-  # parse HAR stuff
-  session = httpsession.HTTPSession(pairs)
-
-  try:
-    outf = open(outputfile, 'w')
-  except:
-    logging.error("File open filed. %s", outputfile)
-    outf = False
-  if outf:
-    json.dump(session, outf, cls=har.JsonReprEncoder, indent=2, encoding='utf8')
+  # If excpetion raises, do not catch it to terminate the program.
+  inf = open(pcap_file, 'r')
+  pcap_in = inf.read()
+  inf.close
+  har_out = StringIO.StringIO()
+  options = convert.Options()
+  #options.remove_cookie = False
+  convert.convert(pcap_in, har_out, options)
+  har_out_str = har_out.getvalue()
+  outf = open(har_file, 'w')
+  outf.write(har_out_str)
+  outf.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   sys.exit(main())

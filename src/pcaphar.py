@@ -44,6 +44,7 @@ import StringIO
 import time
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
+from google.appengine.ext.webapp import template
 from pcap2har import convert
 
 # hash -> pcap input
@@ -54,16 +55,9 @@ hash_queue = []
 
 class MainPage(webapp.RequestHandler):
   def get(self):
-    self.response.out.write("""
-<html>
-<body>
-<form method='POST' enctype='multipart/form-data' action='/convert'>
-File to upload: <input type=file name=upfile><br>
-<br>
-<input type=submit value=Convert>
-</body>
-</html>""")
-
+    template_values = {}
+    index_path = os.path.join(os.path.dirname(__file__), 'index.html')
+    self.response.out.write(template.render(index_path, template_values))
 class Converter(webapp.RequestHandler):
   """
   Convert the uploaded file in PCAP to HAR.
@@ -81,18 +75,23 @@ class Converter(webapp.RequestHandler):
       return
 
     # Compute the hash
-    m = hashlib.md5()
-    m.update(pcap_in)
-    hash_str = m.hexdigest()
+    md5 = hashlib.md5()
+    md5.update(pcap_in)
+    hash_str = md5.hexdigest()
 
     url =  self.request.url
-    path = self.request.path
-    pos = url.find(path)
-    root =""
+    request_path = self.request.path
+    pos = url.find(request_path)
+    host = ""
     if pos != -1:
-      root = url[0:pos]
+      host = url[0:pos]
     har_out = StringIO.StringIO()
-    convert.convert(pcap_in, har_out)
+    options = convert.Options()
+    logging.info("REMOVE COOKIE")
+    logging.info(self.request.get('removecookies'))
+    if not self.request.get('removecookies'):
+      options.remove_cookies = False
+    convert.convert(pcap_in, har_out, options)
     har_out_str = har_out.getvalue()
     har_out_str_hash[hash_str] = har_out_str
     time_now = time.time()
@@ -102,7 +101,7 @@ class Converter(webapp.RequestHandler):
     download_link = '<a href=/download/d/' + hash_str+ '>download</a>\n'
     self.response.out.write(download_link)
     harviewer_url = "/harviewer/index.html?inputUrl="
-    inline_harp = root + "/download/i/"+hash_str
+    inline_harp = host + "/download/i/"+hash_str
     self.response.out.write('<a href=')
     self.response.out.write(harviewer_url + inline_harp)
     self.response.out.write('>HarViewer</a>')
@@ -121,8 +120,8 @@ class Download(webapp.RequestHandler):
   """
   Dowland handler.
 
-  TODO(lsong): The converted HAR is shared across requests. Latest convert will
-  overwrite the content. Find a way to save the content for a session.
+  The converted HAR is shared across requests. Latest convert for the same pcap
+  file will overwrite the content.
   """
   def get(self, download, hash_str):
     """

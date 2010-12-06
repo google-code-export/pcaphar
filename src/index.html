@@ -1,0 +1,30 @@
+<html>
+<head>
+<title>Convert PCAP to HAR</title>
+</head>
+<body>
+  <a href=http://pcaphar.googlecode.com>Project Home</a>
+
+<h3>Convert PCAP to HAR</h3>
+
+<p>
+Upload a <a
+  href=http://wiki.wireshark.org/Development/LibpcapFileFormat>PCAP</a> file to convert to <a
+  href=http://groups.google.com/group/http-archive-specification/web/har-1-2-spec?hl=en>HAR</a>
+format. You will be able to download the HAR file or view it using <a
+  href=http://code.google.com/p/harviewer/>HarViewer</a>.
+
+<p>
+<form method='POST' enctype='multipart/form-data' action='/convert'>
+File to upload: <input type=file name=upfile><br>
+<input type=checkbox name=removecookies checked>Remove cookies (cookies in the
+converted HAR format are replaced by *s for your privacy.) <br>
+<input type=submit value=Convert>
+
+<hr>
+Powered by:
+<a href=https://github.com/andrewf/pcap2har>pcap2har</a> |
+<a href=http://code.google.com/p/dpkt/>dpkt</a> |
+<a href=http://code.google.com/p/harviewer/>harviewer</a> |
+</body>
+</html>

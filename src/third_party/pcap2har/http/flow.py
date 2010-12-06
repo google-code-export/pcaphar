@@ -19,7 +19,8 @@ class Flow:
     '''
     tcpflow = tcp.Flow
     '''
-    self.dns = tcpflow.dns
+    dns = tcpflow.options.dns
+    remove_cookies = tcpflow.options.remove_cookies
     # try parsing it with forward as request dir
     success, requests, responses = parse_streams(tcpflow.fwd, tcpflow.rev)
     if not success:
@@ -53,12 +54,24 @@ class Flow:
             logging.warning("First packet is not SYN.")
           connect_ts = tcpflow.packets[0].ts
           req.ts_connect = connect_ts
-          req.dns_start_ts = self.dns.dns_time_of_connect_to_host(req.host,
-                                                                  connect_ts)
+          req.dns_start_ts = dns.dns_time_of_connect_to_host(req.host,
+                                                             connect_ts)
           connected = True
         else:
           req.ts_connect = req.ts_start
           req.dns_start_ts = -1
+        if remove_cookies:
+          for cookie_str in ('cookie', 'set-cookie'):
+            for msg in (req.msg, resp.msg):
+              if cookie_str in msg.headers:
+                cookie = msg.headers[cookie_str]
+                if type(cookie) is list:
+                  for idx in range(len(cookie)):
+                    size = len(msg.headers[cookie_str][idx])
+                    msg.headers[cookie_str][idx] = '*'.center(size, '*')
+                else:
+                  size = len(msg.headers[cookie_str])
+                  msg.headers[cookie_str] = '*'.center(size, '*')
         self.pairs.append(MessagePair(req, resp))
     except LookupError:
       # there were no responses after the first request

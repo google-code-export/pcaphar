@@ -5,16 +5,25 @@ Main program that converts pcaps to HAR's.
 '''
 
 import pcap
-import optparse
 import logging
-import sys
 import http
 import httpsession
 import har
 import simplejson as json
 
-def convert(pcap_in, har_out):
-  flows = pcap.TCPFlowsFromString(pcap_in)
+class Options:
+  """'
+  Convert options
+  """
+  def __init__(self):
+    """
+    Construct default convert options
+    """
+    self.dns = None #  Will be created when paring pcap.
+    self.remove_cookies = True
+
+def convert(pcap_in, har_out, options):
+  flows = pcap.TCPFlowsFromString(pcap_in, options)
 
   # generate HTTP Flows
   httpflows = []
