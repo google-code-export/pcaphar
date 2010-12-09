@@ -96,19 +96,16 @@ class Converter(webapp.RequestHandler):
     har_out_str_hash[hash_str] = har_out_str
     time_now = time.time()
     heapq.heappush(hash_queue, (time_now, hash_str))
-    self.response.out.write('<html><body>\n')
-    self.response.out.write('<a href=/ >home</a>\n')
-    download_link = '<a href=/download/d/' + hash_str+ '>download</a>\n'
-    self.response.out.write(download_link)
-    harviewer_url = "/harviewer/index.html?inputUrl="
-    inline_harp = host + "/download/i/"+hash_str
-    self.response.out.write('<a href=')
-    self.response.out.write(harviewer_url + inline_harp)
-    self.response.out.write('>HarViewer</a>')
-    self.response.out.write('<hr>')
-    self.response.out.write('<pre>')
-    self.response.out.write(cgi.escape(har_out_str))
-    self.response.out.write('</pre></body></html>')
+    view_url = '/harviewer/index.html?inputUrl='
+    view_url += host + "/download/i/"+hash_str
+
+    template_values = {
+      'download_url': '/download/d/' + hash_str,
+      'view_url':  view_url,
+      'har' : har_out_str,
+    }
+    convert_path = os.path.join(os.path.dirname(__file__), 'convert.html')
+    self.response.out.write(template.render(convert_path, template_values))
 
   def get(self):
     """

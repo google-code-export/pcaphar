@@ -10,6 +10,8 @@ handlers:
 - url: /examples
   static_dir: examples
 
+- url: /images
+  static_dir: images
 
 - url: /.*
   script: pcaphar.py
