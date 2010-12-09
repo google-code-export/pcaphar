@@ -7,5 +7,9 @@ handlers:
 - url: /harviewer
   static_dir: harviewer
 
+- url: /examples
+  static_dir: examples
+
+
 - url: /.*
   script: pcaphar.py
