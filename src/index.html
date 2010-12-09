@@ -3,7 +3,17 @@
 <title>Convert PCAP to HAR</title>
 </head>
 <body>
-  <a href=http://pcaphar.googlecode.com>Project Home</a>
+<table>
+<tr>
+<td valign="top">
+<a href=http://pcaphar.googlecode.com>Project Home</a>
+</td>
+<td valign="top">
+<a href=http://code.google.com/p/pcaphar/w/list>Help</a>
+</td>
+
+</tr>
+</table>
 
 <h3>Convert PCAP to HAR</h3>
 
@@ -16,10 +26,15 @@ format. You will be able to download the HAR file or view it using <a
 
 <p>
 <form method='POST' enctype='multipart/form-data' action='/convert'>
-File to upload: <input type=file name=upfile><br>
+<ol>
+<li>
+Chose file to upload: <input type=file name=upfile><br>
+<li>
 <input type=checkbox name=removecookies checked>Remove cookies (cookies in the
 converted HAR format are replaced by *s for your privacy.) <br>
+<li>
 <input type=submit value=Convert>
+</ol>
 
 <hr>
 Powered by:

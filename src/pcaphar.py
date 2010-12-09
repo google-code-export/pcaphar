@@ -145,14 +145,15 @@ class Download(webapp.RequestHandler):
       return
 
     logging.info("path=%s", self.request.path)
+    headers = self.response.headers
     if download == "i":
       har_out_str = har_out_str_hash[hash_str]
+      headers['Content-Type'] = 'text/javascript'
       self.response.out.write("onInputData(")
       self.response.out.write(har_out_str)
       self.response.out.write(");")
     else:
       har_out_str = har_out_str_hash[hash_str]
-      headers = self.response.headers
       headers['Content-Type'] = 'text/plain'
       headers['Content-disposition'] = 'attachment; filename=har.har'
       self.response.out.write(har_out_str)
