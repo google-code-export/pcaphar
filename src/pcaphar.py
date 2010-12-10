@@ -36,7 +36,6 @@ sys.path.append(os.path.abspath(simplejson_path))
 
 
 
-import cgi
 import hashlib
 import heapq
 import logging
@@ -58,6 +57,7 @@ class MainPage(webapp.RequestHandler):
     template_values = {}
     index_path = os.path.join(os.path.dirname(__file__), 'index.html')
     self.response.out.write(template.render(index_path, template_values))
+
 class Converter(webapp.RequestHandler):
   """
   Convert the uploaded file in PCAP to HAR.
@@ -68,6 +68,8 @@ class Converter(webapp.RequestHandler):
     """
     global har_out_str_hash
     pcap_in = self.request.get('upfile')
+    upfile_name = self.request.POST['upfile'].filename
+
     if not pcap_in or pcap_in == "":
       self.response.out.write('<html><body>')
       self.response.out.write('Empty file to convert.')
@@ -80,8 +82,7 @@ class Converter(webapp.RequestHandler):
     hash_str = md5.hexdigest()
 
     url =  self.request.url
-    request_path = self.request.path
-    pos = url.find(request_path)
+    pos = url.find(self.request.path)
     host = ""
     if pos != -1:
       host = url[0:pos]
@@ -93,7 +94,7 @@ class Converter(webapp.RequestHandler):
       options.remove_cookies = False
     convert.convert(pcap_in, har_out, options)
     har_out_str = har_out.getvalue()
-    har_out_str_hash[hash_str] = har_out_str
+    har_out_str_hash[hash_str] = (upfile_name, har_out_str)
     time_now = time.time()
     heapq.heappush(hash_queue, (time_now, hash_str))
     view_url = '/harviewer/index.html?inputUrl='
@@ -128,10 +129,9 @@ class Download(webapp.RequestHandler):
 
     # Discard saved result older than one hour.
     time_now = time.time()
-    logging.info("hash[0].ts=%f now=%f", hash_queue[0][0], time_now)
-    while hash_queue[0][0] + 3600 < time_now:
-      time_save, that_hash = heapq.heappop(hash_queue)
-      del har_out_str_hash[that_hash]
+    while len(hash_queue) > 0 and hash_queue[0][0] + 3600 < time_now:
+      time_and_hash = heapq.heappop(hash_queue)
+      del har_out_str_hash[time_and_hash[1]]
 
     logging.info("hash=%s", hash_str)
     if len(har_out_str_hash) == 0 or hash_str not in har_out_str_hash:
@@ -144,15 +144,16 @@ class Download(webapp.RequestHandler):
     logging.info("path=%s", self.request.path)
     headers = self.response.headers
     if download == "i":
-      har_out_str = har_out_str_hash[hash_str]
+      upfile_name, har_out_str = har_out_str_hash[hash_str]
       headers['Content-Type'] = 'text/javascript'
       self.response.out.write("onInputData(")
       self.response.out.write(har_out_str)
       self.response.out.write(");")
     else:
-      har_out_str = har_out_str_hash[hash_str]
+      upfile_name, har_out_str = har_out_str_hash[hash_str]
       headers['Content-Type'] = 'text/plain'
-      headers['Content-disposition'] = 'attachment; filename=har.har'
+      download_name = upfile_name + ".har"
+      headers['Content-disposition'] = 'attachment; filename=' + download_name
       self.response.out.write(har_out_str)
 
 
