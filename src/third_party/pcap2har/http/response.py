@@ -1,3 +1,4 @@
+import base64
 import cStringIO
 import gzip
 import http
@@ -90,6 +91,7 @@ class Response(http.Message):
     to unicode if possible. Must come after handle_compression, and after
     self.mediaType is valid.
     '''
+    self.encoding = None
     self.text = None
     # if the body is text
     if (self.mediaType and
@@ -136,7 +138,8 @@ class Response(http.Message):
           self.text = u or None
     else:
       # body is not text
-      self.text = None
+      self.encoding = "base64"
+      self.text = base64.b64encode(self.body)
 
   def json_repr(self):
     """json_repr for HTTP response."""
@@ -145,8 +148,12 @@ class Response(http.Message):
       'compression': len(self.body) - len(self.raw_body),
       'mimeType': self.mimeType
     }
-    if self.text:
+    if self.encoding:
+      content['encoding'] = self.encoding
+      content['text'] = self.text
+    elif self.text:
       content['text'] = self.text.encode('utf8') # must transcode to utf8
+
     headers = self.msg.headers
     return {
       'status': int(self.msg.status),
