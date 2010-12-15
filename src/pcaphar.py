@@ -88,8 +88,7 @@ class Converter(webapp.RequestHandler):
       host = url[0:pos]
     har_out = StringIO.StringIO()
     options = convert.Options()
-    logging.info("REMOVE COOKIE")
-    logging.info(self.request.get('removecookies'))
+    logging.info("REMOVE COOKIE: %s", self.request.get('removecookies'))
     if not self.request.get('removecookies'):
       options.remove_cookies = False
     convert.convert(pcap_in, har_out, options)
@@ -99,10 +98,16 @@ class Converter(webapp.RequestHandler):
     heapq.heappush(hash_queue, (time_now, hash_str))
     view_url = '/harviewer/index.html?inputUrl='
     view_url += host + "/download/i/"+hash_str
+    # TODO(lsong): contruct the url.
+    hartopagespeed_url = 'http://code.google.com/p/pagespeed'
+    # hartopagespeed_url = 'http://localhost/har/?harurl='
+    # hartopagespeed_url += host + "/download/d/"+hash_str
+
 
     template_values = {
       'download_url': '/download/d/' + hash_str,
       'view_url':  view_url,
+      'hartopagespeed_url': hartopagespeed_url,
       'har' : har_out_str,
     }
     convert_path = os.path.join(os.path.dirname(__file__), 'convert.html')

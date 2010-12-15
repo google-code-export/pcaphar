@@ -193,6 +193,10 @@ class HTTPSession(object):
       # TODO(lsong): This is not quite the right way to break up pages.
       # entry.page_ref = self.page_tracker.getref(
       #     msg.request.msg.headers.get('referer', ''), entry.startedDateTime)
+      # Put everything in one page for now.
+      entry.page_ref = self.page_tracker.getref("page_0",
+                                                entry.started_datetime)
+
 
       # parse basic data in the pair, add it to the list
       self.entries.append(entry)

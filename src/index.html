@@ -7,9 +7,6 @@
 <table>
 <tr>
 <td valign="top">
-<a href=http://pcaphar.googlecode.com>Project Home</a>
-</td>
-<td valign="top">
 <a href=http://code.google.com/p/pcaphar/wiki/HowToUse>How to Use</a>
 </td>
 
@@ -18,42 +15,79 @@
     to Capture Mobile Traffics </a>
 </td>
 
+<td valign="top">
+<a href=http://pcaphar.googlecode.com>Open Source Project Home</a>
+</td>
+
+<td valign="top">
+<a href=http://code.google.com/p/pcaphar/issues/entry>Request a Feature</a>
+</td>
+
+
 
 </tr>
 </table>
 
-<h3>Convert PCAP to HAR</h3>
+<h2>PCAP Web Performance Analyzer</h2>
 
 <p>
-Upload a <a
-  href=http://wiki.wireshark.org/Development/LibpcapFileFormat>PCAP</a> file to convert to <a
-  href=http://groups.google.com/group/http-archive-specification/web/har-1-2-spec?hl=en>HAR</a>
-format. You will be able to download the HAR file or view it using <a
-  href=http://code.google.com/p/harviewer/>HarViewer</a>.
+PCAP files contain detailed information about the requests and
+responses sent over the network. The PCAP Web Performance Analyzer
+makes it easy to do web performance analysis using a PCAP file.
+
+<p>
+Using the PCAP Web Performance Analyzer, you can
+<ul>
+  <li> Visualize the HTTP waterfall in a PCAP file using HarViewer
+  <li> Get Page Speed suggestions for a PCAP file
+  <li> Generate a HAR file from a PCAP file
+</ul>
+
+<p>
+We built the PCAP Web Performance Analyzer to help in analyzing mobile
+web performance. Please see <a href=http://code.google.com/p/pcaphar/wiki/CaptureMobileTraffics>how to capture mobile traffic</a> for instructions to
+capture mobile traffic from your mobile device.
+
+
+<h3>Get Started</h3>
+
+<p>
+Upload a PCAP file to get started. You will be able to download a HAR
+file, view the HTTP waterfall using HarViewer, or get Page Speed
+suggestions for your network trace.
 
 <p>
 <form method='POST' enctype='multipart/form-data' action='/convert'>
 <ol>
-<li>
-Chose file to upload: <input type=file name=upfile><br>
-<li>
-<input type=checkbox name=removecookies checked>Remove cookies (cookies in the
+<li> <b>Chose PCAP file:</b> <input type=file name=upfile><br>
+<li> <input type=checkbox name=removecookies checked>Remove cookies (cookies in the
 converted HAR format are replaced by *s for your privacy.) <br>
 <li>
-<input type=submit value=Convert>
+<input type=submit value=Upload>
 </ol>
 
-<h4>Examples: </h4>
+<h3>Examples: </h3>
+<p>
+Below are a few example PCAP files that you can use to try out the
+PCAP Web Performance Analyzer.
+
 <p>
 examle 1:
-<a href=/examples/en-wikipedia-org.pcap>PCAP</a> (iPhone 4 traffic)
-<a href=/examples/en-wikipedia-org.har>HAR</a>
+<a href=/examples/en-wikipedia-org.pcap>PCAP</a> for wikipedia.org using iPhone4
+<a href=/harviewer/examples/en-wikipedia-org.har>HAR</a>
 <a href=/harviewer/index.html?path=examples/en-wikipedia-org.har>View</a>
+<!-- TODO: add url.
+<a href=http://localhost/har/?harurl=http://pcaphar.appspot.com/harviewer/examples/en-wikipedia-org.har>PageSpeed</a>
+-->
 <br>
 examle 2:
-<a href=/examples/www-sina-com-cn.pcap>PCAP</a> (iPhone 4 traffic)
-<a href=/examples/www-sina-com-cn.har>HAR</a>
+<a href=/examples/www-sina-com-cn.pcap>PCAP</a> for sina.com.cn using iPhone4
+<a href=/harviewer/examples/www-sina-com-cn.har>HAR</a>
 <a href=/harviewer/index.html?path=examples/www-sina-com-cn.har>View</a>
+<!-- TODO: add url.
+<a
+  href=http://localhost/har/?harurl=http://pcaphar.appspot.com/harviewer/examples/www-sina-com-cn.har>PageSpeed</a>
+-->
 
 
 <hr>
