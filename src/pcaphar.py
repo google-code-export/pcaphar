@@ -58,6 +58,17 @@ class MainPage(webapp.RequestHandler):
     index_path = os.path.join(os.path.dirname(__file__), 'index.html')
     self.response.out.write(template.render(index_path, template_values))
 
+class Pagespeed(webapp.RequestHandler):
+  def get(self):
+
+    harurl = self.request.get('harurl')
+    template_values = {
+      'harurl': harurl
+    }
+    pagespeed_path = os.path.join(os.path.dirname(__file__), 'pagespeed.html')
+    self.response.out.write(template.render(pagespeed_path, template_values))
+
+
 class Converter(webapp.RequestHandler):
   """
   Convert the uploaded file in PCAP to HAR.
@@ -99,9 +110,8 @@ class Converter(webapp.RequestHandler):
     view_url = '/harviewer/index.html?inputUrl='
     view_url += host + "/download/i/"+hash_str
     # TODO(lsong): contruct the url.
-    hartopagespeed_url = 'http://code.google.com/p/pagespeed'
-    # hartopagespeed_url = 'http://localhost/har/?harurl='
-    # hartopagespeed_url += host + "/download/d/"+hash_str
+    hartopagespeed_url = '/pagespeed?harurl='
+    hartopagespeed_url += host + "/download/d/"+hash_str
 
 
     template_values = {
@@ -169,6 +179,7 @@ def main():
   application = webapp.WSGIApplication(
       [('/', MainPage),
        ('/convert', Converter),
+       ('/pagespeed', Pagespeed),
        (r'/download/(.*)/(.*)', Download),
        ],
       debug=True)
