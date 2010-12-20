@@ -52,6 +52,9 @@ har_out_str_hash = {}
 # priority queue (time, hash), used to remove stale data.
 hash_queue = []
 
+# hash -> cached time
+cache_time_hash = {}
+
 class MainPage(webapp.RequestHandler):
   def get(self):
     template_values = {}
@@ -171,6 +174,53 @@ class Download(webapp.RequestHandler):
       headers['Content-disposition'] = 'attachment; filename=' + download_name
       self.response.out.write(har_out_str)
 
+class Cache(webapp.RequestHandler):
+  """
+  Generate a cached script for given size.
+  """
+  def get(self, size_str, name):
+    headers = self.response.headers
+    headers['Cache-Control'] = 'max-age=36000'
+    size = int(size_str)
+    if name[-2:] == 'js':
+      headers['Content-Type'] = 'text/javascript'
+      js_top = "// Copyright 2010 Google Inc. All Rights Reserved.\n"
+      js_top += "// A dummy script of size file\n"
+      js_top += "function script"+size_str+"() {};\n"
+      comment = "\n// comment";
+      while len(js_top) + len(comment) < size:
+        js_top += comment
+      while len(js_top) < size:
+        js_top += "/"
+
+      self.response.out.write(js_top)
+    elif name[-4:] == 'html':
+      self.response.out.write('<html><head>')
+      self.response.out.write('<script type=text/javascript src=/cache/' +
+                              size_str + '/b.js></script>')
+      self.response.out.write('</head><body>')
+      self.response.out.write('test size='+size_str)
+      self.response.out.write('<hr>return <a href=/ >home</a>')
+      self.response.out.write('</body></html>')
+
+    else:
+      self.response.out.write('<html><body>')
+      self.response.out.write('Unknow type')
+      self.response.out.write('<hr>return <a href=/ >home</a>')
+      self.response.out.write('</body></html>')
+
+class CheckCache(webapp.RequestHandler):
+  """
+  Check is a ginve cache id was requested.
+  """
+  def get(self):
+    headers = self.response.headers
+    cache_id = self.request.get('cache_id')
+    if True:
+      headers['Content-Type'] = 'text/javascript'
+      self.response.out.write("document.write(cache_id);")
+
+
 
 def main():
   """
@@ -180,6 +230,8 @@ def main():
       [('/', MainPage),
        ('/convert', Converter),
        ('/pagespeed', Pagespeed),
+       ('/checkcache', CheckCache),
+       (r'/cache/(.*)/(.*)', Cache),
        (r'/download/(.*)/(.*)', Download),
        ],
       debug=True)
