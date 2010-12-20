@@ -26,11 +26,11 @@ function HarView(content)
     this.model = new HarModel();
 
     // Append tabs
-    this.homeTab = this.appendTab(new HomeTab());
+//    this.homeTab = this.appendTab(new HomeTab());
     this.previewTab = this.appendTab(new PreviewTab(this.model));
-    this.domTab = this.appendTab(new DomTab());
-    this.aboutTab = this.appendTab(new AboutTab());
-    this.schemaTab = this.appendTab(new SchemaTab());
+//    this.domTab = this.appendTab(new DomTab());
+//    this.aboutTab = this.appendTab(new AboutTab());
+//    this.schemaTab = this.appendTab(new SchemaTab());
 
     this.initialize(content);
 }

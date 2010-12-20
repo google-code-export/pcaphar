@@ -25,3 +25,8 @@ td {
 background-color: #BBBBBB; color: black;
 padding-right:20
 }
+
+td.selected {
+background-color: #EEEEEE; color: black;
+padding-right:20
+}

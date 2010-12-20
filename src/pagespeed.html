@@ -1,34 +1,39 @@
 <html>
 <head>
-<title>Page Speed Score for PCAP</title>
+<title>pcapperf</title>
 <link rel="stylesheet" type="text/css" href=images/main.css />
 </head>
 <body>
 <table>
 <tr>
 <td valign="top">
-<a href=http://code.google.com/p/pcaphar/wiki/HowToUse>How to Use</a>
+<a href=/ >Home</a>
 </td>
 
+{% ifequal hash_str "0" %}
+<td class="selected" valign="top">
+Example Page Speed
+</td>
+{% else %}
 <td valign="top">
-  <a href=http://code.google.com/p/pcaphar/wiki/CaptureMobileTraffics>How
-    to Capture Mobile Traffics </a>
+<a href=/download/d/{{ hash_str }}>Download HAR</a>
+</td>
+<td valign="top">
+<a href=/view?hash_str={{ hash_str}}>HarViewer</a>
+</td>
+<td class="selected" valign="top">
+Har-to-PageSpeed
 </td>
 
-<td valign="top">
-<a href=http://pcaphar.googlecode.com>Open Source Project Home</a>
-</td>
-
-<td valign="top">
-<a href=http://code.google.com/p/pcaphar/issues/entry>Request a Feature</a>
-</td>
+{% endifequal %}
 
 </tr>
 </table>
 
 <h2>PCAP Web Performance Analyzer</h2>
+<h4>Page Speed suggestions</h4>
 <p>
-<iframe src="http://har.instwave.com/har/?harurl={{harurl}}" width="80%" height="80%"
+<iframe src="http://bryanmcquade.com/pagespeed/har/?harurl={{har_url}}" width="80%" height="80%"
   frameborder=0>
   <p> You browser does not support iframes.</p>
 </iframe>

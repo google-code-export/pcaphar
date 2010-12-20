@@ -55,6 +55,11 @@ hash_queue = []
 # hash -> cached time
 cache_time_hash = {}
 
+# # special har_urls
+# example_urls = {}
+# example_urls['-1'] = '/harviewer/examples/en-wikipedia-org.har'
+# example_urls['-2'] = '/harviewer/examples/www-sina-com-cn.har'
+
 class MainPage(webapp.RequestHandler):
   def get(self):
     template_values = {}
@@ -63,13 +68,45 @@ class MainPage(webapp.RequestHandler):
 
 class Pagespeed(webapp.RequestHandler):
   def get(self):
+    url =  self.request.url
+    pos = url.find(self.request.path)
+    host = ""
+    if pos != -1:
+      host = url[0:pos]
 
-    harurl = self.request.get('harurl')
+    har_url = self.request.get('harurl')
+    if not har_url:
+      hash_str = self.request.get('hash_str')
+      har_url = host + "/download/d/"+hash_str
+    else:
+      hash_str = "0"
+
     template_values = {
-      'harurl': harurl
+      'hash_str': hash_str,
+      'har_url': har_url,
     }
+
     pagespeed_path = os.path.join(os.path.dirname(__file__), 'pagespeed.html')
     self.response.out.write(template.render(pagespeed_path, template_values))
+
+class View(webapp.RequestHandler):
+  def get(self):
+    url =  self.request.url
+    pos = url.find(self.request.path)
+    host = ""
+    if pos != -1:
+      host = url[0:pos]
+    hash_str = self.request.get('hash_str')
+    har_url = host + "/download/i/"+hash_str
+
+    template_values = {
+      'hash_str': hash_str,
+      'har_url': har_url,
+    }
+
+    harview_path = os.path.join(os.path.dirname(__file__), 'harview.html')
+    self.response.out.write(template.render(harview_path, template_values))
+
 
 
 class Converter(webapp.RequestHandler):
@@ -105,25 +142,32 @@ class Converter(webapp.RequestHandler):
     logging.info("REMOVE COOKIE: %s", self.request.get('removecookies'))
     if not self.request.get('removecookies'):
       options.remove_cookies = False
-    convert.convert(pcap_in, har_out, options)
+
+    error_happened = False
+    try:
+      convert.convert(pcap_in, har_out, options)
+    except:
+      error_happened = True
+
+    if error_happened:
+      template_values = {
+        'upfile_name': upfile_name,
+      }
+      error_path = os.path.join(os.path.dirname(__file__), 'convert_error.html')
+      self.response.out.write(template.render(error_path, template_values))
+      return
+
     har_out_str = har_out.getvalue()
     har_out_str_hash[hash_str] = (upfile_name, har_out_str)
     time_now = time.time()
     heapq.heappush(hash_queue, (time_now, hash_str))
-    view_url = '/harviewer/index.html?inputUrl='
-    view_url += host + "/download/i/"+hash_str
-    # TODO(lsong): contruct the url.
-    hartopagespeed_url = '/pagespeed?harurl='
-    hartopagespeed_url += host + "/download/d/"+hash_str
-
+    har_url = host + "/download/i/"+hash_str
 
     template_values = {
-      'download_url': '/download/d/' + hash_str,
-      'view_url':  view_url,
-      'hartopagespeed_url': hartopagespeed_url,
-      'har' : har_out_str,
+      'hash_str': hash_str,
+      'har_url': har_url,
     }
-    convert_path = os.path.join(os.path.dirname(__file__), 'convert.html')
+    convert_path = os.path.join(os.path.dirname(__file__), 'harview.html')
     self.response.out.write(template.render(convert_path, template_values))
 
   def get(self):
@@ -230,6 +274,7 @@ def main():
       [('/', MainPage),
        ('/convert', Converter),
        ('/pagespeed', Pagespeed),
+       ('/view', View),
        ('/checkcache', CheckCache),
        (r'/cache/(.*)/(.*)', Cache),
        (r'/download/(.*)/(.*)', Download),

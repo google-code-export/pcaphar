@@ -13,21 +13,21 @@
     optimizeCss: "standard",
 
     modules: [
-        {
-            name: "harViewer",
-            include: [
-                "nls/harViewer",
-                "nls/homeTab",
-                "nls/pageStats",
-                "nls/previewTab",
-                "nls/requestBody",
-                "nls/requestList"
-            ],
-            excludeShallow: [
-                "domplate/domplate",
-                "core/trace"
-            ]
-        },
+        //{
+        //    name: "harViewer",
+        //    include: [
+        //        "nls/harViewer",
+        //        "nls/homeTab",
+        //        "nls/pageStats",
+        //        "nls/previewTab",
+        //        "nls/requestBody",
+        //        "nls/requestList"
+        //    ],
+        //    excludeShallow: [
+        //        "domplate/domplate",
+        //        "core/trace"
+        //    ]
+        //},
         {
             name: "harPreview",
             include: [
