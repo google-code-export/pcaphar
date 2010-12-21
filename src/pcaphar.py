@@ -119,13 +119,14 @@ class Converter(webapp.RequestHandler):
     """
     global har_out_str_hash
     pcap_in = self.request.get('upfile')
-    upfile_name = self.request.POST['upfile'].filename
 
     if not pcap_in or pcap_in == "":
       self.response.out.write('<html><body>')
-      self.response.out.write('Empty file to convert.')
+      self.response.out.write('Please choose a PCAP file first.')
       self.response.out.write('</body></html>')
       return
+
+    upfile_name = self.request.POST['upfile'].filename
 
     # Compute the hash
     md5 = hashlib.md5()

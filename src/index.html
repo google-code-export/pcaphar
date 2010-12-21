@@ -30,27 +30,6 @@
 
 <h2>PCAP Web Performance Analyzer</h2>
 
-<!--
-<p>
-PCAP files contain detailed information about the requests and
-responses sent over the network. The PCAP Web Performance Analyzer
-makes it easy to do web performance analysis using a PCAP file.
-
-<p>
-We built the PCAP Web Performance Analyzer to help in analyzing mobile
-web performance. Please see <a href=http://code.google.com/p/pcaphar/wiki/CaptureMobileTraffics>how to capture mobile traffic</a> for instructions to
-capture mobile traffic from your mobile device.
-
-<p>
-Using the PCAP Web Performance Analyzer, you can
-<ul>
-  <li> Visualize the HTTP waterfall in a PCAP file using HarViewer
-  <li> Get Page Speed suggestions for a PCAP file
-  <li> Generate a HAR file from a PCAP file
-</ul>
-
--->
-
 <h3>Get Started</h3>
 
 <p>
@@ -62,8 +41,8 @@ get Page Speed suggestions for your network trace.
 <form method='POST' enctype='multipart/form-data' action='/convert'>
 <ol>
 <li> <b>Chose PCAP file:</b> <input type=file name=upfile><br>
-<li> <input type=checkbox name=removecookies checked>Remove cookies (cookies in the
-converted HAR format are replaced by *s for your privacy.) <br>
+<li> <input type=checkbox name=removecookies checked><span
+title="cookies in the converted HAR format are replaced by *s for your privacy."> Remove cookies</span> <br>
 <li>
 <input type=submit value=Upload>
 </ol>
@@ -76,15 +55,15 @@ PCAP Web Performance Analyzer.
 <p>
 examle 1:
 <a href=/examples/en-wikipedia-org.pcap>PCAP</a> for wikipedia.org using iPhone4
-<a href=/harviewer/examples/en-wikipedia-org.har>HAR</a>
 <a href=/harviewer/index.html?path=examples/en-wikipedia-org.har>View</a>
 <a href=/pagespeed?harurl=http://pcapperf.appspot.com/harviewer/examples/en-wikipedia-org.har>PageSpeed</a>
+<a href=/harviewer/examples/en-wikipedia-org.har>Download HAR</a>
 <br>
 examle 2:
 <a href=/examples/www-sina-com-cn.pcap>PCAP</a> for sina.com.cn using iPhone4
-<a href=/harviewer/examples/www-sina-com-cn.har>HAR</a>
 <a href=/harviewer/index.html?path=examples/www-sina-com-cn.har>View</a>
 <a href=/pagespeed?harurl=http://pcapperf.appspot.com/harviewer/examples/www-sina-com-cn.har>PageSpeed</a>
+<a href=/harviewer/examples/www-sina-com-cn.har>Download HAR</a>
 
 
 <hr>
@@ -92,5 +71,6 @@ Powered by:
 <a href=https://github.com/andrewf/pcap2har>pcap2har</a> |
 <a href=http://code.google.com/p/dpkt/>dpkt</a> |
 <a href=http://code.google.com/p/harviewer/>harviewer</a> |
+<a href=http://code.google.com/p/page-speed/>Page Speed</a> |
 </body>
 </html>
