@@ -34,11 +34,11 @@ RequestList.prototype = domplate(
         TABLE({"class": "netTable", cellpadding: 0, cellspacing: 0, onclick: "$onClick"},
             TBODY(
                 TR(
-                    TD({width: "20%"}),
-                    TD({width: "10%"}),
-                    TD({width: "10%"}),
-                    TD({width: "10%"}),
-                    TD({width: "50%"}),
+                    TD({width: "150"}),
+                    TD({width: "100"}),
+                    TD({width: "100"}),
+                    TD({width: "50"}),
+                    TD({width: "70%"}),
                     TD({width: "15px"})
                 )
             )

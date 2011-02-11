@@ -7,8 +7,11 @@ FILES=""
 ARGUMENTS=""
 FORCE="false"
 THIS=$0
+THIS_DIR=$(dirname $0)
+PARENT_DIR=$(dirname $THIS_DIR)
+MAIN_PY=$THIS_DIR/main.py
 #PROGRAM='python -B main.py'
-PROGRAM='python2.5 main.py'
+PROGRAM="python $MAIN_PY"
 
 function usage {
   echo "Usage: $THIS [options] files ..."
@@ -40,7 +43,7 @@ pass_no_gold=0
 for file in $FILES; do
   if [ $FORCE == "true" -o ! -e $file.har ] ; then
     echo "processing $file ..."
-    PYTHONPATH=..:../dpkt:../simplejson $PROGRAM $ARGUMENTS $file $file.har
+    PYTHONPATH=$PARENT_DIR:$PARENT_DIR/dpkt:$PARENT_DIR/simplejson $PROGRAM $ARGUMENTS $file $file.har
     ret=$?
     if [ $ret -ne 0 ]; then
       echo "Fatal error: $ret."

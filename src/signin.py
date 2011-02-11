@@ -25,46 +25,85 @@ __author__ = 'lsong@google.com (Libo Song)'
 
 import os
 import sys
+import logging
+import zlib
 
 # add third_party directory to sys.path for global import
-path = os.path.join(os.path.dirname(__file__), "third_party")
-sys.path.append(os.path.abspath(path))
-dpkt_path = os.path.join(path, "dpkt")
+third_path_path = os.path.join(os.path.dirname(__file__), "third_party")
+sys.path.append(os.path.abspath(third_path_path))
+dpkt_path = os.path.join(third_path_path, "dpkt")
 sys.path.append(os.path.abspath(dpkt_path))
-simplejson_path = os.path.join(path, "simplejson")
+simplejson_path = os.path.join(third_path_path, "simplejson")
 sys.path.append(os.path.abspath(simplejson_path))
 
 
-
+logging.info(sys.path)
 import hashlib
 import heapq
-import logging
 import StringIO
 import time
+from google.appengine.api import users
+from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext.webapp import template
 from pcap2har import convert
 
-# hash -> pcap input
-har_out_str_hash = {}
+class PcapRecord(db.Model):
+  date = db.DateTimeProperty(auto_now_add=True)
+  hash_str = db.StringProperty()
+  pcapname = db.StringProperty()
+  pcap = db.BlobProperty()
 
-# priority queue (time, hash), used to remove stale data.
-hash_queue = []
+class HarRecord(db.Model):
+  date = db.DateTimeProperty(auto_now_add=True)
+  user = db.UserProperty()
+  hash_str = db.StringProperty()
+  pcapname = db.StringProperty()
+  har = db.BlobProperty()
 
-# hash -> cached time
-cache_time_hash = {}
+def GetHarRecord(hash_str):
+  query = "WHERE hash_str = :1 ORDER BY date DESC LIMIT 1"
+  records = HarRecord.gql(query, hash_str).fetch(1);
+  if len(records) == 0:
+    return None
+  return records[0]
 
-# # special har_urls
-# example_urls = {}
-# example_urls['-1'] = '/harviewer/examples/en-wikipedia-org.har'
-# example_urls['-2'] = '/harviewer/examples/www-sina-com-cn.har'
+def GetPcapRecord(hash_str):
+  query = "WHERE hash_str = :1 ORDER BY date DESC LIMIT 1"
+  records = PcapRecord.gql(query, hash_str).fetch(1);
+  if len(records) == 0:
+    return None
+  return records[0]
+
+def GetRecordsOfUser(user, limit):
+  query = "WHERE user = :1 ORDER BY date DESC"
+  return HarRecord.gql(query, user).fetch(limit);
 
 class MainPage(webapp.RequestHandler):
   def get(self):
-    template_values = {}
+    user = users.get_current_user();
+    user_name = ""
+    url_text = "sign in"
+    recent_records = []
+    if user:
+      signurl = users.create_logout_url(self.request.uri)
+      user_name = user.nickname()
+      url_text = "sign out"
+      recent_records = GetRecordsOfUser(user, 10)
+    else:
+      signurl = users.create_login_url(self.request.uri)
+
+
+    template_values = {
+      'user_name': user_name,
+      'url_text': url_text,
+      'sign_url': signurl,
+      'has_records': len(recent_records) > 0,
+      'recent_records': recent_records,
+    }
     index_path = os.path.join(os.path.dirname(__file__),
-                              'templates/index.html')
+                              'templates/signin-index.html')
     self.response.out.write(template.render(index_path, template_values))
 
 class Pagespeed(webapp.RequestHandler):
@@ -78,7 +117,7 @@ class Pagespeed(webapp.RequestHandler):
     har_url = self.request.get('harurl')
     if not har_url:
       hash_str = self.request.get('hash_str')
-      har_url = host + "/download/d/"+hash_str
+      har_url = host + "/signin/download/d/"+hash_str
     else:
       hash_str = "0"
 
@@ -88,7 +127,7 @@ class Pagespeed(webapp.RequestHandler):
     }
 
     pagespeed_path = os.path.join(os.path.dirname(__file__),
-                                  'templates/pagespeed.html')
+                                  'templates/signin-pagespeed.html')
     self.response.out.write(template.render(pagespeed_path, template_values))
 
 class View(webapp.RequestHandler):
@@ -99,7 +138,7 @@ class View(webapp.RequestHandler):
     if pos != -1:
       host = url[0:pos]
     hash_str = self.request.get('hash_str')
-    har_url = host + "/download/i/"+hash_str
+    har_url = host + "/signin/download/i/"+hash_str
 
     template_values = {
       'hash_str': hash_str,
@@ -107,7 +146,7 @@ class View(webapp.RequestHandler):
     }
 
     harview_path = os.path.join(os.path.dirname(__file__),
-                                'templates/harview.html')
+                                'templates/signin-harview.html')
     self.response.out.write(template.render(harview_path, template_values))
 
 
@@ -120,7 +159,11 @@ class Converter(webapp.RequestHandler):
     """
     Process the uploaded PCAP file.
     """
-    global har_out_str_hash
+
+    user = users.get_current_user()
+    if not user:
+      self.redirect("/")
+
     pcap_in = self.request.get('upfile')
 
     if not pcap_in or pcap_in == "":
@@ -163,17 +206,36 @@ class Converter(webapp.RequestHandler):
       return
 
     har_out_str = har_out.getvalue()
-    har_out_str_hash[hash_str] = (upfile_name, har_out_str)
     time_now = time.time()
-    heapq.heappush(hash_queue, (time_now, hash_str))
-    har_url = host + "/download/i/"+hash_str
+
+    if user:
+      har_view_html = "templates/signin-harview.html"
+      har_url = host + "/signin/download/i/"+hash_str
+      # Save to the Datastore.
+      har_record = GetHarRecord(hash_str)
+      if not har_record:
+        har_record = HarRecord()
+      har_record.user = user
+      har_record.hash_str = hash_str
+      har_record.pcapname = upfile_name
+      har_record.har = zlib.compress(har_out_str)
+      har_record.put()
+
+      pcap_record = GetPcapRecord(hash_str)
+      if not pcap_record:
+        pcap_record = PcapRecord()
+        pcap_record.hash_str = hash_str
+        pcap_record.pcap = pcap_in
+        pcap_record.put()
+    else:
+      har_view_html = "templates/harview.html"
+      har_url = host + "/download/i/"+hash_str
 
     template_values = {
       'hash_str': hash_str,
       'har_url': har_url,
     }
-    convert_path = os.path.join(os.path.dirname(__file__),
-                                'templates/harview.html')
+    convert_path = os.path.join(os.path.dirname(__file__), har_view_html)
     self.response.out.write(template.render(convert_path, template_values))
 
   def get(self):
@@ -181,6 +243,33 @@ class Converter(webapp.RequestHandler):
     If request of GET, e.g., typed URL in browser, redirect it to root.
     """
     self.redirect("/")
+
+class List(webapp.RequestHandler):
+  """
+  List HAR files.
+  """
+  def get(self):
+    """
+    Process the list.
+    """
+    user = users.get_current_user()
+    if user:
+      #records = HarRecord.gql("WHERE user = :user ORDER BY date", user=user)
+      records = HarRecord.all()
+      records.filter("user =", user)
+      records.order("-date")
+      records = records.fetch(1000)
+    else:
+      records = [];
+
+    template_values = {
+      'has_records': len(records) > 0,
+      'records': records,
+    }
+    convert_path = os.path.join(os.path.dirname(__file__),
+                               'templates/signin-list.html')
+    self.response.out.write(template.render(convert_path, template_values))
+
 
 class Download(webapp.RequestHandler):
   """
@@ -193,97 +282,40 @@ class Download(webapp.RequestHandler):
     """
     Process the download.
     """
-    global har_out_str_hash
-
-    # Discard saved result older than one hour.
-    time_now = time.time()
-    while len(hash_queue) > 0 and hash_queue[0][0] + 3600 < time_now:
-      time_and_hash = heapq.heappop(hash_queue)
-      del har_out_str_hash[time_and_hash[1]]
-
     logging.info("hash=%s", hash_str)
-    if len(har_out_str_hash) == 0 or hash_str not in har_out_str_hash:
-      self.response.out.write('<html><body>')
-      self.response.out.write('Empty')
-      self.response.out.write('<hr>return <a href=/ >home</a>')
-      self.response.out.write('</body></html>')
+    record = GetHarRecord(hash_str)
+    if not record:
+      self.response.out.write('<html><body>\n')
+      self.response.out.write('Empty for hash_str='+hash_str)
+      self.response.out.write('\n<hr>return <a href=/ >home</a>')
+      self.response.out.write('\n</body></html>')
       return
 
     logging.info("path=%s", self.request.path)
     headers = self.response.headers
     if download == "i":
-      upfile_name, har_out_str = har_out_str_hash[hash_str]
       headers['Content-Type'] = 'text/javascript'
       self.response.out.write("onInputData(")
-      self.response.out.write(har_out_str)
+      self.response.out.write(zlib.decompress(record.har))
       self.response.out.write(");")
     else:
-      upfile_name, har_out_str = har_out_str_hash[hash_str]
       headers['Content-Type'] = 'text/plain'
-      download_name = upfile_name + ".har"
+      download_name = record.pcapname + ".har"
       headers['Content-disposition'] = 'attachment; filename=' + download_name
-      self.response.out.write(har_out_str)
-
-class Cache(webapp.RequestHandler):
-  """
-  Generate a cached script for given size.
-  """
-  def get(self, size_str, name):
-    headers = self.response.headers
-    size = int(size_str)
-    if name[-2:] == 'js':
-      headers['Cache-Control'] = 'max-age=3600'
-      headers['Content-Type'] = 'text/javascript'
-      js_top = "// Copyright 2010 Google Inc. All Rights Reserved.\n"
-      js_top += "// A dummy script of size file\n"
-      js_top += "function script"+size_str+"() {};\n"
-      comment = "\n// comment";
-      while len(js_top) + len(comment) < size:
-        js_top += comment
-      while len(js_top) < size:
-        js_top += "/"
-
-      self.response.out.write(js_top)
-    elif name[-4:] == 'html':
-      self.response.out.write('<html><head>')
-      self.response.out.write('<script type=text/javascript src=/cache/' +
-                              size_str + '/b.js></script>')
-      self.response.out.write('</head><body>')
-      self.response.out.write('test size='+size_str)
-      self.response.out.write('<hr>return <a href=/ >home</a>')
-      self.response.out.write('</body></html>')
-
-    else:
-      self.response.out.write('<html><body>')
-      self.response.out.write('Unknow type')
-      self.response.out.write('<hr>return <a href=/ >home</a>')
-      self.response.out.write('</body></html>')
-
-class CheckCache(webapp.RequestHandler):
-  """
-  Check is a ginve cache id was requested.
-  """
-  def get(self):
-    headers = self.response.headers
-    cache_id = self.request.get('cache_id')
-    if True:
-      headers['Content-Type'] = 'text/javascript'
-      self.response.out.write("document.write(cache_id);")
-
-
+      self.response.out.write(zlib.decompress(record.har))
 
 def main():
   """
   The real main function.
   """
   application = webapp.WSGIApplication(
-      [('/', MainPage),
-       ('/convert', Converter),
-       ('/pagespeed', Pagespeed),
-       ('/view', View),
-       ('/checkcache', CheckCache),
-       (r'/cache/(.*)/(.*)', Cache),
-       (r'/download/(.*)/(.*)', Download),
+      [('/signin/', MainPage),
+       ('/signin', MainPage),
+       ('/signin/list', List),
+       ('/signin/convert', Converter),
+       ('/signin/pagespeed', Pagespeed),
+       ('/signin/view', View),
+       (r'/signin/download/(.*)/(.*)', Download),
        ],
       debug=True)
   run_wsgi_app(application)

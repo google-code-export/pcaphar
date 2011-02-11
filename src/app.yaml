@@ -22,5 +22,11 @@ handlers:
 - url: /images
   static_dir: images
 
+- url: /signin
+  script: signin.py
+
+- url: /signin/.*
+  script: signin.py
+
 - url: /.*
   script: pcaphar.py

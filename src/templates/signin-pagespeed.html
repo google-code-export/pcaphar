@@ -1,0 +1,46 @@
+<html>
+<head>
+<title>pcapperf</title>
+<link rel="stylesheet" type="text/css" href=/images/main.css />
+</head>
+<body>
+<table>
+<tr>
+<td valign="top">
+<a href=/signin/ >Home</a>
+</td>
+
+{% ifequal hash_str "0" %}
+<td class="selected" valign="top">
+Example Page Speed
+</td>
+{% else %}
+<td valign="top">
+<a href=/signin/download/d/{{ hash_str }}>Download HAR</a>
+</td>
+<td valign="top">
+<a href=/signin/view?hash_str={{ hash_str}}>HarViewer</a>
+</td>
+<td class="selected" valign="top">
+Har-to-PageSpeed
+</td>
+
+{% endifequal %}
+
+</tr>
+</table>
+
+<h2>PCAP Web Performance Analyzer</h2>
+<h4>Page Speed suggestions</h4>
+<p>
+<iframe src="http://bryanmcquade.com/pagespeed/har/?harurl={{har_url}}" width="80%" height="80%"
+  frameborder=0>
+  <p> You browser does not support iframes.</p>
+</iframe>
+<hr>
+Powered by:
+<a href=https://github.com/andrewf/pcap2har>pcap2har</a> |
+<a href=http://code.google.com/p/dpkt/>dpkt</a> |
+<a href=http://code.google.com/p/harviewer/>harviewer</a> |
+</body>
+</html>

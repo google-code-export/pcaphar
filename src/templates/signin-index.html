@@ -1,0 +1,97 @@
+<html>
+<head>
+<title>pcapperf</title>
+<link rel="stylesheet" type="text/css" href=/images/main.css />
+</head>
+<body>
+{{ user_name }} <a href="{{ sign_url }}">{{url_text}}</a>
+<table>
+<tr>
+<td valign="top">
+<a href=http://code.google.com/p/pcaphar/wiki/HowToUse>How to Use</a>
+</td>
+
+<td valign="top">
+  <a href=http://code.google.com/p/pcaphar/wiki/CaptureMobileTraffics>How
+    to Capture Mobile Traffics </a>
+</td>
+
+<td valign="top">
+<a href=http://pcaphar.googlecode.com>Open Source Project Home</a>
+</td>
+
+<td valign="top">
+<a href=http://code.google.com/p/pcaphar/issues/entry>Request a Feature</a>
+</td>
+
+
+
+</tr>
+</table>
+
+<h2>PCAP Web Performance Analyzer</h2>
+
+<h3>Get Started</h3>
+
+<p>
+Upload a PCAP file to get started (or choose an example PCAP file below). You
+will be able to download a HAR file, view the HTTP waterfall using HarViewer, or
+get Page Speed suggestions for your network trace.
+
+<p>
+<form method='POST' enctype='multipart/form-data' action='/signin/convert'>
+<ol>
+  <li> <b>Chose PCAP file:</b> <input type=file name=upfile><br>
+<li> <input type=checkbox name=removecookies checked><span
+title="cookies in the converted HAR format are replaced by *s for your privacy."> Remove cookies</span> <br>
+<li>
+{% if user_name %}
+<input type=submit value=Upload>
+{% else %}
+<input disabled="disabled" type=submit value=Upload> (Please signin to enable.)
+{% endif %}
+</ol>
+
+<h3>Examples: </h3>
+<p>
+Below are a few example PCAP files that you can use to try out the
+PCAP Web Performance Analyzer.
+
+<p>
+examle 1:
+<a href=/examples/en-wikipedia-org.pcap>PCAP</a> for wikipedia.org using iPhone4
+<a href=/harviewer/index.html?path=examples/en-wikipedia-org.har>View waterfall</a>
+<a href=/pagespeed?harurl=http://pcapperf.appspot.com/harviewer/examples/en-wikipedia-org.har>PageSpeed</a>
+<a href=/harviewer/examples/en-wikipedia-org.har>Download HAR</a>
+<br>
+examle 2:
+<a href=/examples/www-sina-com-cn.pcap>PCAP</a> for sina.com.cn using iPhone4
+<a href=/harviewer/index.html?path=examples/www-sina-com-cn.har>View waterfall</a>
+<a href=/pagespeed?harurl=http://pcapperf.appspot.com/harviewer/examples/www-sina-com-cn.har>PageSpeed</a>
+<a href=/harviewer/examples/www-sina-com-cn.har>Download HAR</a>
+
+{% if user_name %}
+{% if has_records %}
+<hr>
+Your recent PCAP files:
+<ul>
+  {% for record in recent_records %}
+<li>{{ record.pcapname }}
+    {{ record.date|date:"r" }}
+    <a href='/signin/view?hash_str={{ record.hash_str }}'>waterfall</a>
+  {% endfor %}
+</ul>
+<a href=/signin/list>more</a>
+{% endif %}
+{% endif %}
+
+
+
+<hr>
+Powered by:
+<a href=https://github.com/andrewf/pcap2har>pcap2har</a> |
+<a href=http://code.google.com/p/dpkt/>dpkt</a> |
+<a href=http://code.google.com/p/harviewer/>harviewer</a> |
+<a href=http://code.google.com/p/page-speed/>Page Speed</a> |
+</body>
+</html>
