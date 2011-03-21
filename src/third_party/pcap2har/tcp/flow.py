@@ -1,4 +1,5 @@
 import logging
+import dpkt
 import tcp
 from tcp.direction import Direction
 
@@ -31,7 +32,11 @@ class Flow:
     if len(self.packets): # if we have received packets before...
       if self.packets[-1].ts > pkt.ts: # if this one is out of order...
         # error out
-        raise ValueError("packet added to TCPFlow out of chronological order")
+        if (self.packets[-1].tcp.flags == dpkt.tcp.TH_ACK or
+            pkt.tcp.flags == dpkt.tcp.TH_ACK) :
+          logging.warning("ACK may out of chronological order")
+        else:
+          raise ValueError("packet added to TCPFlow out of chronological order %f > %f" % (self.packets[-1].ts , pkt.ts))
     self.packets.append(pkt)
     # look out for handshake
     # add it to the appropriate direction, if we've found or given up on

@@ -39,7 +39,7 @@ import heapq
 import logging
 import StringIO
 import time
-from pcap2har import convert
+import convert
 
 def PrintUsage():
   print __file__, "[options] <pcap file> [<har file>]"
