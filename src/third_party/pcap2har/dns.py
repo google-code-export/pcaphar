@@ -37,7 +37,7 @@ class DNS:
     if isinstance(ip_packet.data, dpkt.udp.UDP):
       udp = ip_packet.data
       if udp.sport != 53 and udp.dport != 53:
-        logging.debug("Unknow UDP port s:%d->d%d", udp.sport, udp.dport)
+        #logging.debug("Unknow UDP port s:%d->d%d", udp.sport, udp.dport)
         return False
       dns = dpkt.dns.DNS(udp.data)
       if len(dns.qd) != 1:
@@ -65,8 +65,8 @@ class DNS:
           hostname_timing['end'] = timestamp
           self.__dns_timing__[an.ip]['end'] = timestamp
           self.__dns_timing__[an.ip]['connected'] = 0
-          logging.debug("DNS %s: %.3f", qd.name,
-                        timestamp - self.__dns_timing__[an.ip]['start'])
+          #logging.debug("DNS %s: %.3f", qd.name,
+          #              timestamp - self.__dns_timing__[an.ip]['start'])
       return True
     return False
 
@@ -92,8 +92,8 @@ class DNS:
     time overrrides the pervious times.
     """
     dns_start_ts = -1
-    logging.debug("check dns timing: %s (%d)", host,
-                  len(self.__hostname_start__))
+    #logging.debug("check dns timing: %s (%d)", host,
+    #              len(self.__hostname_start__))
     if host in self.__hostname_start__:
       timing_connected =  self.__hostname_start__[host]['connected']
       if timing_connected == 0:
@@ -101,5 +101,5 @@ class DNS:
       elif math.fabs(timing_connected - connect_ts) > 0.1:
         return -1
       dns_start_ts = self.__hostname_start__[host]['start']
-      logging.debug("DNS timing: %s = %d", host, dns_start_ts)
+      #logging.debug("DNS timing: %s = %d", host, dns_start_ts)
     return dns_start_ts

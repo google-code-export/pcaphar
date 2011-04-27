@@ -24,8 +24,12 @@ as well was a download link.
 __author__ = 'lsong@google.com (Libo Song)'
 
 import os
-import sys
+os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
 
+from google.appengine.dist import use_library
+use_library('django', '1.2')
+
+import sys
 # add third_party directory to sys.path for global import
 path = os.path.join(os.path.dirname(__file__), "third_party")
 sys.path.append(os.path.abspath(path))
@@ -34,31 +38,114 @@ sys.path.append(os.path.abspath(dpkt_path))
 simplejson_path = os.path.join(path, "simplejson")
 sys.path.append(os.path.abspath(simplejson_path))
 
-
-
-import hashlib
-import heapq
 import logging
+import hashlib
 import StringIO
 import time
+import zlib
+
+from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext.webapp import template
 from pcap2har import convert
 
-# hash -> pcap input
-har_out_str_hash = {}
+class TimingRecord(db.Model):
+  date = db.DateTimeProperty(auto_now_add=True)
+  hash_str = db.StringProperty()
+  upload = db.FloatProperty()
+  savepcap = db.FloatProperty()
+  convert = db.FloatProperty()
+  savehar = db.FloatProperty()
+  loadhar = db.FloatProperty()
+  total = db.FloatProperty()
 
-# priority queue (time, hash), used to remove stale data.
-hash_queue = []
+class DataRecord(db.Model):
+  hash_str = db.StringProperty()
+  index = db.IntegerProperty()
+  data = db.BlobProperty()
 
-# hash -> cached time
-cache_time_hash = {}
+class PcapHarInfo(db.Model):
+  date = db.DateTimeProperty(auto_now_add=True)
+  hash_str = db.StringProperty()
+  pcapname = db.StringProperty()
+  data_count = db.IntegerProperty()
 
-# # special har_urls
-# example_urls = {}
-# example_urls['-1'] = '/harviewer/examples/en-wikipedia-org.har'
-# example_urls['-2'] = '/harviewer/examples/www-sina-com-cn.har'
+def GetPcapHarInfo(hash_str):
+  query = "WHERE hash_str = :1 ORDER BY date DESC LIMIT 1"
+  records = PcapHarInfo.gql(query, hash_str).fetch(1)
+  if len(records) == 0:
+    return None
+  return records[0]
+
+def GetDataRecord(hash_str, idx):
+  query = DataRecord.all()
+  query.filter("hash_str =", hash_str)
+  query.filter("index = ", idx)
+  records = query.fetch(1)
+  if len(records) == 1:
+    return records[0]
+  else:
+    return None
+
+def GetRequestHostName(request):
+  pos = request.url.find(request.path)
+  host = ""
+  if pos != -1:
+    host = request.url[0:pos]
+  return host
+
+def SaveData(kind, hash_str, pcapname, data):
+  start_time = time.clock()
+  # Compress the data before save.
+  compressed_data = zlib.compress(data)
+  # Calculate the count of records.
+  size = len(compressed_data)
+  chunk_size = 1000000
+  data_count = int(size / chunk_size) + 1
+  data_hash = ':'.join([kind, hash_str])
+
+  # Save info
+  info = GetPcapHarInfo(data_hash)
+  if not info:
+    info = PcapHarInfo()
+    info.hash_str = data_hash
+  info.data_count = data_count
+  info.pcapname = pcapname
+  info.put()
+
+  # Create each data record and save it.
+  for idx in range(data_count):
+    record = GetDataRecord(data_hash, idx)
+    if not record:
+      record = DataRecord()
+      record.hash_str = data_hash
+      record.index = idx
+    start = idx*chunk_size
+    end = (idx+1)*chunk_size
+    if size < end:
+      end = size
+    record.data = compressed_data[start:end]
+    record.put()
+  return time.clock() - start_time
+
+def LoadData(kind, hash_str):
+  start_time = time.clock()
+  data_hash = ':'.join([kind, hash_str])
+  info = GetPcapHarInfo(data_hash)
+  if not info:
+    return None, None
+  data_a = []
+  logging.info("Data count:" + str(info.data_count))
+  for idx in range(info.data_count):
+    record = GetDataRecord(data_hash, idx)
+    if not record:
+      logging.error("Not found: " + data_hash + " -- " + str(idx))
+      return None, None
+    data_a.append(record.data)
+  data = zlib.decompress(''.join(data_a))
+  duration = time.clock() - start_time
+  return info.pcapname, data, duration
 
 class MainPage(webapp.RequestHandler):
   def get(self):
@@ -69,12 +156,7 @@ class MainPage(webapp.RequestHandler):
 
 class Pagespeed(webapp.RequestHandler):
   def get(self):
-    url =  self.request.url
-    pos = url.find(self.request.path)
-    host = ""
-    if pos != -1:
-      host = url[0:pos]
-
+    host = GetRequestHostName(self.request)
     har_url = self.request.get('harurl')
     if not har_url:
       hash_str = self.request.get('hash_str')
@@ -93,11 +175,7 @@ class Pagespeed(webapp.RequestHandler):
 
 class View(webapp.RequestHandler):
   def get(self):
-    url =  self.request.url
-    pos = url.find(self.request.path)
-    host = ""
-    if pos != -1:
-      host = url[0:pos]
+    host = GetRequestHostName(self.request)
     hash_str = self.request.get('hash_str')
     har_url = host + "/download/i/"+hash_str
 
@@ -116,46 +194,53 @@ class Converter(webapp.RequestHandler):
   """
   Convert the uploaded file in PCAP to HAR.
   """
+  def __init__(self):
+    self.perf_record = TimingRecord()
+
+  def GetUploadFile(self):
+    start = time.clock()
+    pcap_input = self.request.get('upfile')
+    self.perf_record.upload = time.clock() - start
+
+    if not pcap_input or pcap_input == "":
+      self.response.out.write('<html><body>')
+      self.response.out.write('Please choose a PCAP file first.')
+      self.response.out.write('</body></html>')
+      return None
+    return pcap_input
+
   def post(self):
     """
     Process the uploaded PCAP file.
     """
-    global har_out_str_hash
-    pcap_in = self.request.get('upfile')
-
-    if not pcap_in or pcap_in == "":
-      self.response.out.write('<html><body>')
-      self.response.out.write('Please choose a PCAP file first.')
-      self.response.out.write('</body></html>')
+    total_time_start = time.clock()
+    pcap_input = self.GetUploadFile()
+    if not pcap_input:
       return
 
-    upfile_name = self.request.POST['upfile'].filename
+    pcap_input_name = self.request.POST['upfile'].filename
 
     # Compute the hash
     md5 = hashlib.md5()
-    md5.update(pcap_in)
-    hash_str = md5.hexdigest()
+    md5.update(pcap_input)
+    pcap_hash_str = md5.hexdigest()
+    # Do not save the pcap data.
+    # duration = SaveData('pcap', pcap_hash_str, pcap_input_name, pcap_input)
+    # self.perf_record.savepcap = duration
 
-    url =  self.request.url
-    pos = url.find(self.request.path)
-    host = ""
-    if pos != -1:
-      host = url[0:pos]
     har_out = StringIO.StringIO()
     options = convert.Options()
-    logging.info("REMOVE COOKIE: %s", self.request.get('removecookies'))
+    logging.info("Remove Cookie: %s", self.request.get('removecookies'))
     if not self.request.get('removecookies'):
       options.remove_cookies = False
 
-    error_happened = False
     try:
-      convert.convert(pcap_in, har_out, options)
+      start_time = time.clock()
+      convert.convert(pcap_input, har_out, options)
+      self.perf_record.convert = time.clock() - start_time
     except:
-      error_happened = True
-
-    if error_happened:
       template_values = {
-        'upfile_name': upfile_name,
+        'upfile_name': pcap_input_name,
       }
       error_path = os.path.join(os.path.dirname(__file__),
                                 'templates/convert_error.html')
@@ -163,18 +248,17 @@ class Converter(webapp.RequestHandler):
       return
 
     har_out_str = har_out.getvalue()
-    har_out_str_hash[hash_str] = (upfile_name, har_out_str)
-    time_now = time.time()
-    heapq.heappush(hash_queue, (time_now, hash_str))
-    har_url = host + "/download/i/"+hash_str
+    # Save the har data.
+    duration = SaveData('har ', pcap_hash_str, pcap_input_name, har_out_str)
+    self.perf_record.savehar = duration
 
-    template_values = {
-      'hash_str': hash_str,
-      'har_url': har_url,
-    }
-    convert_path = os.path.join(os.path.dirname(__file__),
-                                'templates/harview.html')
-    self.response.out.write(template.render(convert_path, template_values))
+    # Show the waterfall view.
+    self.redirect("/view?hash_str=" + pcap_hash_str)
+    self.perf_record.total = time.clock() - total_time_start
+    logging.info("Total time:" + str(self.perf_record.total))
+    self.perf_record.hash_str = pcap_hash_str
+    self.perf_record.put()
+
 
   def get(self):
     """
@@ -189,20 +273,17 @@ class Download(webapp.RequestHandler):
   The converted HAR is shared across requests. Latest convert for the same pcap
   file will overwrite the content.
   """
+  def __init__(self):
+    self.perf_record = TimingRecord()
+
   def get(self, download, hash_str):
     """
     Process the download.
     """
-    global har_out_str_hash
-
-    # Discard saved result older than one hour.
-    time_now = time.time()
-    while len(hash_queue) > 0 and hash_queue[0][0] + 3600 < time_now:
-      time_and_hash = heapq.heappop(hash_queue)
-      del har_out_str_hash[time_and_hash[1]]
-
-    logging.info("hash=%s", hash_str)
-    if len(har_out_str_hash) == 0 or hash_str not in har_out_str_hash:
+    total_time_start = time.clock()
+    name, data, duration = LoadData('har ', hash_str)
+    self.perf_record.loadhar = duration
+    if not name:
       self.response.out.write('<html><body>')
       self.response.out.write('Empty')
       self.response.out.write('<hr>return <a href=/ >home</a>')
@@ -212,65 +293,63 @@ class Download(webapp.RequestHandler):
     logging.info("path=%s", self.request.path)
     headers = self.response.headers
     if download == "i":
-      upfile_name, har_out_str = har_out_str_hash[hash_str]
       headers['Content-Type'] = 'text/javascript'
       self.response.out.write("onInputData(")
-      self.response.out.write(har_out_str)
+      self.response.out.write(data)
       self.response.out.write(");")
     else:
-      upfile_name, har_out_str = har_out_str_hash[hash_str]
       headers['Content-Type'] = 'text/plain'
-      download_name = upfile_name + ".har"
+      download_name = name + ".har"
       headers['Content-disposition'] = 'attachment; filename=' + download_name
-      self.response.out.write(har_out_str)
+      self.response.out.write(data)
+    self.perf_record.total = time.clock() - total_time_start
+    logging.info("Total time:" + str(self.perf_record.total))
+    self.perf_record.hash_str = hash_str
+    self.perf_record.put()
 
-class Cache(webapp.RequestHandler):
+
+class Timing(webapp.RequestHandler):
   """
-  Generate a cached script for given size.
-  """
-  def get(self, size_str, name):
-    headers = self.response.headers
-    size = int(size_str)
-    if name[-2:] == 'js':
-      headers['Cache-Control'] = 'max-age=3600'
-      headers['Content-Type'] = 'text/javascript'
-      js_top = "// Copyright 2010 Google Inc. All Rights Reserved.\n"
-      js_top += "// A dummy script of size file\n"
-      js_top += "function script"+size_str+"() {};\n"
-      comment = "\n// comment";
-      while len(js_top) + len(comment) < size:
-        js_top += comment
-      while len(js_top) < size:
-        js_top += "/"
-
-      self.response.out.write(js_top)
-    elif name[-4:] == 'html':
-      self.response.out.write('<html><head>')
-      self.response.out.write('<script type=text/javascript src=/cache/' +
-                              size_str + '/b.js></script>')
-      self.response.out.write('</head><body>')
-      self.response.out.write('test size='+size_str)
-      self.response.out.write('<hr>return <a href=/ >home</a>')
-      self.response.out.write('</body></html>')
-
-    else:
-      self.response.out.write('<html><body>')
-      self.response.out.write('Unknow type')
-      self.response.out.write('<hr>return <a href=/ >home</a>')
-      self.response.out.write('</body></html>')
-
-class CheckCache(webapp.RequestHandler):
-  """
-  Check is a ginve cache id was requested.
+  Show timing info.
   """
   def get(self):
-    headers = self.response.headers
-    cache_id = self.request.get('cache_id')
-    if True:
-      headers['Content-Type'] = 'text/javascript'
-      self.response.out.write("document.write(cache_id);")
+    time_start = time.clock()
+    self.response.out.write('<table><tr>\n')
+    self.response.out.write('<th>date')
+    self.response.out.write('<th>upload')
+    self.response.out.write('<th>savepcap')
+    self.response.out.write('<th>convert')
+    self.response.out.write('<th>savehar')
+    self.response.out.write('<th>loadhar')
+    self.response.out.write('<th>total')
+    self.response.out.write('<th>hash')
+    self.response.out.write('\n</tr>\n')
 
-
+    query = TimingRecord.all().order("-date")
+    results = query.fetch(1000)
+    for record in results:
+      self.response.out.write('<tr><td>')
+      self.response.out.write(str(record.date))
+      self.response.out.write(' <td> ')
+      self.response.out.write(str(record.upload))
+      self.response.out.write(' <td> ')
+      self.response.out.write(str(record.savepcap))
+      self.response.out.write(' <td> ')
+      self.response.out.write(str(record.convert))
+      self.response.out.write(' <td> ')
+      self.response.out.write(str(record.savehar))
+      self.response.out.write(' <td> ')
+      self.response.out.write(str(record.loadhar))
+      self.response.out.write(' <td> ')
+      self.response.out.write(str(record.total))
+      self.response.out.write(' <td> ')
+      self.response.out.write(record.hash_str)
+      self.response.out.write('\n<tr>\n')
+    self.response.out.write('</table>\n')
+    time_end = time.clock()
+    self.response.out.write('<hr>')
+    self.response.out.write('Timing: ' + '%f'%time_start
+                            + ' - ' + '%f'%time_end)
 
 def main():
   """
@@ -281,8 +360,7 @@ def main():
        ('/convert', Converter),
        ('/pagespeed', Pagespeed),
        ('/view', View),
-       ('/checkcache', CheckCache),
-       (r'/cache/(.*)/(.*)', Cache),
+       ('/timing', Timing),
        (r'/download/(.*)/(.*)', Download),
        ],
       debug=True)

@@ -30,7 +30,7 @@ class TCPFlowAccumulator:
     try:
       for pkt in pcap_reader:
         debug_pkt_count += 1
-        log.debug("Processing packet %d", debug_pkt_count)
+        #log.debug("Processing packet %d", debug_pkt_count)
         # discard incomplete packets
         header = pkt[2]
         if header.caplen != header.len:
@@ -84,14 +84,11 @@ class TCPFlowAccumulator:
       return
 
     if (src, dst) in self.flowdict:
-      #print '  adding as ', (src, dst)
       self.flowdict[(src, dst)].add(pkt)
     elif (dst, src) in self.flowdict:
-      #print '  adding as ', (dst, src)
       self.flowdict[(dst, src)].add(pkt)
     else:
-      #print '  making new dict entry as ', (src, dst)
-      log.debug("New flow: s:%d -> d:%d", srcport, dstport)
+      #log.debug("New flow: s:%d -> d:%d", srcport, dstport)
       newflow = tcp.Flow(self.options)
       newflow.add(pkt)
       self.flowdict[(src, dst)] = newflow
