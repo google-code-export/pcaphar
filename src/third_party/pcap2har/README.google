@@ -7,4 +7,9 @@ pcap2har is a python software to convert PCAP network capture files to HAR
 format.
 
 Local Modifications:
-None.
+1. Removed unused functions.
+2. Moved json_repr to http request/response (they are not recognized when assigned in har.py).
+3. Used modified dpkt.http directly instead of making a copy.
+4. Condition
+5. Redefine inet_ntoa, because AppEngine does not support socket module.
+6. Take a string input and output to a StringIO.

@@ -1,0 +1,14 @@
+URL: http://http://harviewer.googlecode.com/svn/trunk/
+Version: @296
+License: New BSD License
+
+Description:
+HAR Viewer is a web application (PHP + Javascript) that allows to visualize
+HTTP tracing logs based on HTTP Archive format (HAR). These files contain
+recorded information about HTTP traffic performed by web pages. A HAR log can
+be created by HTTP sniffer tools such as Firebug.
+
+Local Modifications:
+1. Removed dependence of PHP.
+2. Changed a bit UI for embeded in an iframe.
+3. Set a large interval number for breaking waterfall charts (wrap).
