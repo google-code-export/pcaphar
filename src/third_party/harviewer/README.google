@@ -12,3 +12,4 @@ Local Modifications:
 1. Removed dependence of PHP.
 2. Changed a bit UI for embeded in an iframe.
 3. Set a large interval number for breaking waterfall charts (wrap).
+4. Removed files not used by pcaphar.
