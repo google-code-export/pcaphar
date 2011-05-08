@@ -13,6 +13,10 @@ handlers:
   static_files: static/robots.txt
   upload: static/robots.txt
 
+- url: /harviewer/examples
+  expiration: '7d'
+  mime_type: 'text/plain'
+  static_dir: harviewer/examples
 
 - url: /harviewer
   expiration: '7d'
@@ -20,6 +24,7 @@ handlers:
 
 - url: /examples
   expiration: '7d'
+  mime_type: 'text/plain'
   static_dir: examples
 
 - url: /images
