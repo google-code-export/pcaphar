@@ -31,5 +31,8 @@ handlers:
   expiration: '7d'
   static_dir: images
 
+- url: /fastbutton
+  script: testing.py
+
 - url: /.*
   script: pcaphar.py

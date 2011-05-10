@@ -1,0 +1,68 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Fast button test</title>
+<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scal=1.0; user-scalable=0;"/>
+<style type="text/css">
+textarea { font-size: 24px; }
+button {font-size: 32px; }
+</style>
+<script type="text/javascript">
+
+var g_last_click_ts = 0;
+var g_touch_start_ts = 0;
+var g_click_ts = 0;
+var g_shortest_click = -1;
+var g_shortest_touch = -1;
+
+function show(msg) {
+ document.getElementById("log").value = msg + "\n";
+}
+
+function click_handler(action) {
+  g_click_ts = +new Date;
+  var since_touch = g_click_ts - g_touch_start_ts;
+  if (g_touch_start_ts == 0) {
+    since_touch = -1;
+  }
+
+  var since_last_click = g_click_ts - g_last_click_ts;
+  if (g_last_click_ts == 0) {
+    since_last_click = -1;
+  }
+
+  if (action == 'touch') {
+    if (g_shortest_touch < 0 || since_last_click < g_shortest_touch) {
+      g_shortest_touch = since_last_click
+    }
+    show("touch: "+ since_touch + "\nclick: " + since_last_click + "\nshortest: " + g_shortest_touch);
+  } else {
+    if (g_shortest_click < 0 || since_last_click < g_shortest_click) {
+      g_shortest_click = since_last_click
+    }
+    show("touch: "+ since_touch + "\nclick: " + since_last_click + "\nshortest: " + g_shortest_click);
+  }
+  g_last_click_ts = g_click_ts;
+}
+
+function touch_start_handler() {
+  g_touch_start_ts = +new Date();
+}
+
+</script>
+</head>
+<body>
+<textarea id="log" cols="18" rows="4" readonly></textarea>
+<br>
+<br>
+<button id="button_click_0" onTouchStart="touch_start_handler()"
+  onClick="click_handler('click')">Slow</button>
+&nbsp;
+<button id="button_touch_0" onTouchStart="touch_start_handler(); click_handler('touch')">Fast</button>
+<br>
+
+
+<hr>
+</body>
+</html>
+
