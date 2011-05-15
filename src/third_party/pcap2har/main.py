@@ -26,7 +26,7 @@ import os
 import sys
 
 # add third_party directory to sys.path for global import
-path = os.path.join(os.path.dirname(__file__), "third_party")
+path = os.path.join(os.path.dirname(__file__), "..")
 sys.path.append(os.path.abspath(path))
 dpkt_path = os.path.join(path, "dpkt")
 sys.path.append(os.path.abspath(dpkt_path))
