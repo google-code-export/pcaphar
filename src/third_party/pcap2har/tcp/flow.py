@@ -24,6 +24,8 @@ class Flow:
     self.socket = None
     self.packets = []
     self.options = options
+    # DEBUG
+    self.print_log_out_of_order = True
   def add(self, pkt):
     '''
     called for every packet coming in, instead of iterating through a list
@@ -32,11 +34,14 @@ class Flow:
     if len(self.packets): # if we have received packets before...
       if self.packets[-1].ts > pkt.ts: # if this one is out of order...
         # error out
-        if (self.packets[-1].tcp.flags == dpkt.tcp.TH_ACK or
-            pkt.tcp.flags == dpkt.tcp.TH_ACK) :
-          logging.warning("ACK may out of chronological order")
+        if len(self.packets[-1].data) == 0 or len(pkt.data) == 0 :
+          if self.print_log_out_of_order:
+            logging.warning("Non-data packet may be out of chronological order.")
+            self.print_log_out_of_order = False
         else:
-          raise ValueError("packet added to TCPFlow out of chronological order %f > %f" % (self.packets[-1].ts , pkt.ts))
+          raise ValueError(
+              "packet added to TCPFlow out of chronological order %f > %f" %
+              (self.packets[-1].ts , pkt.ts))
     self.packets.append(pkt)
     # look out for handshake
     # add it to the appropriate direction, if we've found or given up on
