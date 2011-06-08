@@ -36,7 +36,7 @@ class Flow:
         # error out
         if len(self.packets[-1].data) == 0 or len(pkt.data) == 0 :
           if self.print_log_out_of_order:
-            logging.warning("Non-data packet may be out of chronological order.")
+            logging.info("Non-data packet may be out of chronological order.")
             self.print_log_out_of_order = False
         else:
           raise ValueError(

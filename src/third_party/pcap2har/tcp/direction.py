@@ -52,8 +52,8 @@ class Direction:
           # bridged the gap
           overlapped2, result2 = chunk.merge(self.chunks[i+1])
           if overlapped2: # if that merge worked
-            # data should only be added to back
-            assert( (not result2[0]) and (result2[1]))
+            # The original code asserts that the data only be added to the back.
+            # But there is no reason for that, so removed that assertion.
             del self.chunks[i+1] # remove the now-redundant chunk
         merged = True
         break # skip further chunks

@@ -2,6 +2,7 @@ from message import Message
 from request import Request
 from response import Response
 from flow import Flow
+import urllib
 
 class Error(Exception):
     '''
@@ -31,6 +32,8 @@ def query_json_repr(query):
     for v in l:
       output.append({
         'name': k,
-        'value': v
+        # v may be non-utf8 character, quote it as URL. This cause all the
+        # special characters, e.g., :|&?$, to be quoted for url.
+        'value': urllib.quote(v)
       })
   return output
