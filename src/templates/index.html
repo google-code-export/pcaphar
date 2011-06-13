@@ -36,11 +36,14 @@
 Upload a PCAP file to get started (or choose an example PCAP file below). You
 will be able to download a HAR file, view the HTTP waterfall using HarViewer, or
 get Page Speed suggestions for your network trace.
+<p>New:
+<b> If filename ends with ".har", assume it's a HAR and skip
+conversion step.</b>
 
 <p>
 <form method='POST' enctype='multipart/form-data' action='/convert'>
 <ol>
-<li> <b>Chose PCAP file:</b> <input type=file name=upfile><br>
+<li> <b>Chose PCAP or HAR file:</b> <input type=file name=upfile><br>
 <li> <input type=checkbox name=removecookies checked><span
 title="cookies in the converted HAR format are replaced by *s for your privacy."> Remove cookies</span> <br>
 <li>

@@ -199,15 +199,35 @@ class Converter(webapp.RequestHandler):
 
   def GetUploadFile(self):
     start = time.clock()
-    pcap_input = self.request.get('upfile')
+    upload_input = self.request.get('upfile')
     self.perf_record.upload = time.clock() - start
 
-    if not pcap_input or pcap_input == "":
+    if not upload_input or upload_input == "":
       self.response.out.write('<html><body>')
       self.response.out.write('Please choose a PCAP file first.')
       self.response.out.write('</body></html>')
       return None
-    return pcap_input
+    return upload_input
+
+  def ConvertPcapToHar(self, pcap_input, har_out):
+    options = convert.Options()
+    logging.info("Remove Cookie: %s", self.request.get('removecookies'))
+    if not self.request.get('removecookies'):
+      options.remove_cookies = False
+
+    try:
+      start_time = time.clock()
+      convert.convert(pcap_input, har_out, options)
+      self.perf_record.convert = time.clock() - start_time
+    except:
+      template_values = {
+        'upfile_name': pcap_input_name,
+      }
+      error_path = os.path.join(os.path.dirname(__file__),
+                                'templates/convert_error.html')
+      self.response.out.write(template.render(error_path, template_values))
+      return False
+    return True
 
   def post(self):
     """
@@ -228,26 +248,14 @@ class Converter(webapp.RequestHandler):
     # duration = SaveData('pcap', pcap_hash_str, pcap_input_name, pcap_input)
     # self.perf_record.savepcap = duration
 
-    har_out = StringIO.StringIO()
-    options = convert.Options()
-    logging.info("Remove Cookie: %s", self.request.get('removecookies'))
-    if not self.request.get('removecookies'):
-      options.remove_cookies = False
+    if pcap_input_name[-4:] == '.har':
+        har_out_str = pcap_input
+    else:
+        har_out = StringIO.StringIO()
+        if not self.ConvertPcapToHar(pcap_input, har_out):
+            return
+        har_out_str = har_out.getvalue()
 
-    try:
-      start_time = time.clock()
-      convert.convert(pcap_input, har_out, options)
-      self.perf_record.convert = time.clock() - start_time
-    except:
-      template_values = {
-        'upfile_name': pcap_input_name,
-      }
-      error_path = os.path.join(os.path.dirname(__file__),
-                                'templates/convert_error.html')
-      self.response.out.write(template.render(error_path, template_values))
-      return
-
-    har_out_str = har_out.getvalue()
     # Save the har data.
     duration = SaveData('har ', pcap_hash_str, pcap_input_name, har_out_str)
     self.perf_record.savehar = duration
@@ -299,7 +307,11 @@ class Download(webapp.RequestHandler):
       self.response.out.write(");")
     else:
       headers['Content-Type'] = 'text/plain'
-      download_name = name + ".har"
+
+      if name[-4:] == '.har':
+        download_name = name
+      else:
+        download_name = name + '.har'
       headers['Content-disposition'] = 'attachment; filename=' + download_name
       self.response.out.write(data)
     self.perf_record.total = time.clock() - total_time_start
@@ -342,8 +354,8 @@ class Timing(webapp.RequestHandler):
       self.response.out.write(str(record.loadhar))
       self.response.out.write(' <td> ')
       self.response.out.write(str(record.total))
-      self.response.out.write(' <td> ')
-      self.response.out.write(record.hash_str)
+      #self.response.out.write(' <td> ')
+      #self.response.out.write(record.hash_str)
       self.response.out.write('\n<tr>\n')
     self.response.out.write('</table>\n')
     time_end = time.clock()
