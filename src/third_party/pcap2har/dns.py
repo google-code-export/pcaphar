@@ -41,8 +41,8 @@ class DNS:
         return False
       dns = dpkt.dns.DNS(udp.data)
       if len(dns.qd) != 1:
-        logging.error("DNS query size > 1: %d", len(dns.qd))
-        raise
+        logging.error("DNS query size(%d) != 1", len(dns.qd))
+        return True
       qd = dns.qd[0]
       dns_an = getattr(dns, 'an')
       if len(dns_an) == 0:

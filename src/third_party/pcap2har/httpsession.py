@@ -48,12 +48,12 @@ class Entry:
     self.time_blocked = -1
     self.time_dnsing = -1
     if request.dns_start_ts != -1:
-      self.ts_start = request.dns_start_ts
       dns_sec = request.ts_connect - request.dns_start_ts
       if dns_sec < 0:
-        logging.error("url=%s connct=%f dns=%f", request.url,
-                      request.ts_connect, request.dns_start_ts)
+        logging.warning("url=%s connct=%f dns=%f", request.url,
+                        request.ts_connect, request.dns_start_ts)
       else:
+        self.ts_start = request.dns_start_ts
         self.time_dnsing = int(dns_sec * 1000)
     self.started_datetime = datetime.fromtimestamp(self.ts_start)
     self.time_connecting = ms_from_dpkt_time(
