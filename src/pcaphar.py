@@ -209,7 +209,7 @@ class Converter(webapp.RequestHandler):
       return None
     return upload_input
 
-  def ConvertPcapToHar(self, pcap_input, har_out):
+  def ConvertPcapToHar(self, pcap_input, har_out, pcap_input_name):
     options = convert.Options()
     logging.info("Remove Cookie: %s", self.request.get('removecookies'))
     if not self.request.get('removecookies'):
@@ -252,7 +252,7 @@ class Converter(webapp.RequestHandler):
         har_out_str = pcap_input
     else:
         har_out = StringIO.StringIO()
-        if not self.ConvertPcapToHar(pcap_input, har_out):
+        if not self.ConvertPcapToHar(pcap_input, har_out, pcap_input_name):
             return
         har_out_str = har_out.getvalue()
 
