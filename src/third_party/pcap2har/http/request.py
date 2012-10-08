@@ -36,4 +36,7 @@ class Request(http.Message):
       'headersSize': -1,
       'headers': http.header_json_repr(self.msg.headers),
       'bodySize': len(self.msg.body),
+      'postData': {
+        'text': self.msg.body,
+      },
     }

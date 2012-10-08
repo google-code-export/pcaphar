@@ -96,7 +96,7 @@ def GetRequestHostName(request):
   return host
 
 def SaveData(kind, hash_str, pcapname, data):
-  start_time = time.clock()
+  start_time = time.time()
   # Compress the data before save.
   compressed_data = zlib.compress(data)
   # Calculate the count of records.
@@ -127,10 +127,10 @@ def SaveData(kind, hash_str, pcapname, data):
       end = size
     record.data = compressed_data[start:end]
     record.put()
-  return time.clock() - start_time
+  return time.time() - start_time
 
 def LoadData(kind, hash_str):
-  start_time = time.clock()
+  start_time = time.time()
   data_hash = ':'.join([kind, hash_str])
   info = GetPcapHarInfo(data_hash)
   if not info:
@@ -144,7 +144,7 @@ def LoadData(kind, hash_str):
       return None, None
     data_a.append(record.data)
   data = zlib.decompress(''.join(data_a))
-  duration = time.clock() - start_time
+  duration = time.time() - start_time
   return info.pcapname, data, duration
 
 class MainPage(webapp.RequestHandler):
@@ -198,9 +198,9 @@ class Converter(webapp.RequestHandler):
     self.perf_record = TimingRecord()
 
   def GetUploadFile(self):
-    start = time.clock()
+    start = time.time()
     upload_input = self.request.get('upfile')
-    self.perf_record.upload = time.clock() - start
+    self.perf_record.upload = time.time() - start
 
     if not upload_input or upload_input == "":
       self.response.out.write('<html><body>')
@@ -216,9 +216,9 @@ class Converter(webapp.RequestHandler):
       options.remove_cookies = False
 
     try:
-      start_time = time.clock()
+      start_time = time.time()
       convert.convert(pcap_input, har_out, options)
-      self.perf_record.convert = time.clock() - start_time
+      self.perf_record.convert = time.time() - start_time
     except:
       template_values = {
         'upfile_name': pcap_input_name,
@@ -233,7 +233,7 @@ class Converter(webapp.RequestHandler):
     """
     Process the uploaded PCAP file.
     """
-    total_time_start = time.clock()
+    total_time_start = time.time()
     pcap_input = self.GetUploadFile()
     if not pcap_input:
       return
@@ -244,9 +244,9 @@ class Converter(webapp.RequestHandler):
     md5 = hashlib.md5()
     md5.update(pcap_input)
     pcap_hash_str = md5.hexdigest()
-    # Do not save the pcap data.
-    # duration = SaveData('pcap', pcap_hash_str, pcap_input_name, pcap_input)
-    # self.perf_record.savepcap = duration
+    # Save the pcap data.
+    duration = SaveData('pcap', pcap_hash_str, pcap_input_name, pcap_input)
+    self.perf_record.savepcap = duration
 
     if pcap_input_name[-4:] == '.har':
         har_out_str = pcap_input
@@ -262,7 +262,7 @@ class Converter(webapp.RequestHandler):
 
     # Show the waterfall view.
     self.redirect("/view?hash_str=" + pcap_hash_str)
-    self.perf_record.total = time.clock() - total_time_start
+    self.perf_record.total = time.time() - total_time_start
     logging.info("Total time:" + str(self.perf_record.total))
     self.perf_record.hash_str = pcap_hash_str
     self.perf_record.put()
@@ -288,7 +288,7 @@ class Download(webapp.RequestHandler):
     """
     Process the download.
     """
-    total_time_start = time.clock()
+    total_time_start = time.time()
     name, data, duration = LoadData('har ', hash_str)
     self.perf_record.loadhar = duration
     if not name:
@@ -314,7 +314,7 @@ class Download(webapp.RequestHandler):
         download_name = name + '.har'
       headers['Content-disposition'] = 'attachment; filename=' + download_name
       self.response.out.write(data)
-    self.perf_record.total = time.clock() - total_time_start
+    self.perf_record.total = time.time() - total_time_start
     logging.info("Total time:" + str(self.perf_record.total))
     self.perf_record.hash_str = hash_str
     self.perf_record.put()
@@ -325,7 +325,7 @@ class Timing(webapp.RequestHandler):
   Show timing info.
   """
   def get(self):
-    time_start = time.clock()
+    time_start = time.time()
     self.response.out.write('<table><tr>\n')
     self.response.out.write('<th>date')
     self.response.out.write('<th>upload')
@@ -343,22 +343,22 @@ class Timing(webapp.RequestHandler):
       self.response.out.write('<tr><td>')
       self.response.out.write(str(record.date))
       self.response.out.write(' <td> ')
-      self.response.out.write(str(record.upload))
+      self.response.out.write(str(record.upload or ""))
       self.response.out.write(' <td> ')
-      self.response.out.write(str(record.savepcap))
+      self.response.out.write(str(record.savepcap or ""))
       self.response.out.write(' <td> ')
-      self.response.out.write(str(record.convert))
+      self.response.out.write(str(record.convert or ""))
       self.response.out.write(' <td> ')
-      self.response.out.write(str(record.savehar))
+      self.response.out.write(str(record.savehar or ""))
       self.response.out.write(' <td> ')
-      self.response.out.write(str(record.loadhar))
+      self.response.out.write(str(record.loadhar  or ""))
       self.response.out.write(' <td> ')
-      self.response.out.write(str(record.total))
+      self.response.out.write(str(record.total or ""))
       #self.response.out.write(' <td> ')
       #self.response.out.write(record.hash_str)
       self.response.out.write('\n<tr>\n')
     self.response.out.write('</table>\n')
-    time_end = time.clock()
+    time_end = time.time()
     self.response.out.write('<hr>')
     self.response.out.write('Timing: ' + '%f'%time_start
                             + ' - ' + '%f'%time_end)
