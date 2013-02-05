@@ -41,7 +41,7 @@ get Page Speed suggestions for your network trace.
 conversion step.</b>
 
 <p>
-<form method='POST' enctype='multipart/form-data' action='/convert'>
+<form method='POST' enctype='multipart/form-data' action='convert'>
 <ol>
 <li> <b>Chose PCAP or HAR file:</b> <input type=file name=upfile><br>
 <li> <input type=checkbox name=removecookies checked><span
@@ -57,16 +57,20 @@ PCAP Web Performance Analyzer.
 
 <p>
 examle 1:
-<a href=/examples/en-wikipedia-org.pcap>PCAP</a> for wikipedia.org using iPhone4
-<a href=/harviewer/index.html?path=examples/en-wikipedia-org.har>View waterfall</a>
-<a href=/pagespeed?harurl=http://pcapperf.appspot.com/harviewer/examples/en-wikipedia-org.har>PageSpeed</a>
-<a href=/harviewer/examples/en-wikipedia-org.har>Download HAR</a>
+<a href=examples/en-wikipedia-org.pcap>PCAP</a> for wikipedia.org using iPhone4
+<a href=harviewer/index.html?path=examples/en-wikipedia-org.har>View waterfall</a>
+<!-- // Hosting of pagespeed is not available now. uncomment when this is availabe.
+<a href=pagespeed?harurl=http://pcapperf.appspot.com/harviewer/examples/en-wikipedia-org.har>PageSpeed</a>
+// -->
+<a href=harviewer/examples/en-wikipedia-org.har>Download HAR</a>
 <br>
 examle 2:
-<a href=/examples/www-sina-com-cn.pcap>PCAP</a> for sina.com.cn using iPhone4
-<a href=/harviewer/index.html?path=examples/www-sina-com-cn.har>View waterfall</a>
+<a href=examples/www-sina-com-cn.pcap>PCAP</a> for sina.com.cn using iPhone4
+<a href=harviewer/index.html?path=examples/www-sina-com-cn.har>View waterfall</a>
+<!-- // Hosting of pagespeed is not available now. uncomment when this is availabe.
 <a href=/pagespeed?harurl=http://pcapperf.appspot.com/harviewer/examples/www-sina-com-cn.har>PageSpeed</a>
-<a href=/harviewer/examples/www-sina-com-cn.har>Download HAR</a>
+// -->
+<a href=harviewer/examples/www-sina-com-cn.har>Download HAR</a>
 
 
 <hr>

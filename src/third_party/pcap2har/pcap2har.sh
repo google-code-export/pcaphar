@@ -43,7 +43,7 @@ pass_no_gold=0
 for file in $FILES; do
   if [ $FORCE == "true" -o ! -e $file.har ] ; then
     echo "processing $file ..."
-    PYTHONPATH=$PARENT_DIR:$PARENT_DIR/dpkt:$PARENT_DIR/simplejson $PROGRAM $ARGUMENTS $file $file.har
+    PYTHONPATH=$PARENT_DIR:$PARENT_DIR/dpkt $PROGRAM $ARGUMENTS $file $file.har
     ret=$?
     if [ $ret -ne 0 ]; then
       echo "Fatal error: $ret."

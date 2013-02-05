@@ -1,28 +1,18 @@
 import os
-os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
+import webapp2
 
-from google.appengine.dist import use_library
-use_library('django', '1.2')
+import jinja2
+jinja_environment = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
 
-from google.appengine.ext import webapp
-from google.appengine.ext.webapp.util import run_wsgi_app
-from google.appengine.ext.webapp import template
-
-class FastButton(webapp.RequestHandler):
+class FastButton(webapp2.RequestHandler):
   def get(self):
     template_values = {
     }
-    index_path = os.path.join(os.path.dirname(__file__),
-                              'templates/fastbutton.html')
-    self.response.out.write(template.render(index_path, template_values))
+    template = jinja_environment.get_template('templates/fastbutton.html')
+    self.response.out.write(template.render(template_values))
 
-application = webapp.WSGIApplication(
+app = webapp2.WSGIApplication(
     [ ('/fastbutton', FastButton),
     ], debug = True)
-
-def main():
-    run_wsgi_app(application)
-
-if __name__ == "__main__":
-    main()
 

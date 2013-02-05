@@ -5,6 +5,7 @@ HAR file.
 import logging
 from datetime import datetime
 from pcaputil import ms_from_timedelta, ms_from_dpkt_time
+import json
 
 
 class Page:

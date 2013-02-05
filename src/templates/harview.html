@@ -1,29 +1,32 @@
 <html>
 <head>
 <title>pcapperf</title>
-<link rel="stylesheet" type="text/css" href=/images/main.css />
+<link rel="stylesheet" type="text/css" href=images/main.css />
 </head>
 <body>
 <table>
 <tr>
 <td valign="top">
-<a href=/ >Home</a>
+<a href=./ >Home</a>
 </td>
 <td valign="top">
-<a href=/download/d/{{ hash_str }}>Download HAR</a>
+<a href=download/d/{{ hash_str }}>Download HAR</a>
 </td>
 <td class="selected" valign="top">
 HarViewer
 </td>
+
+<!-- // Pagespeed is not available now.
 <td valign="top">
 <a href=/pagespeed?hash_str={{ hash_str}}>Har-to-PageSpeed</a>
 </td>
+// -->
 
 </tr>
 </table>
 <h2>PCAP Web Performance Analyzer</h2>
 <p>
-<iframe src="/harviewer/index.html?inputUrl={{ har_url }}" width=100% height=90% frameborder=0>
+<iframe src="harviewer/index.html?inputUrl={{ har_url }}" width=100% height=90% frameborder=0>
   <p> You browser does not support iframes.</p>
 </iframe>
 <p>

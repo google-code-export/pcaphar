@@ -9,7 +9,7 @@ import logging
 import http
 import httpsession
 import har
-import simplejson as json
+import json
 
 class Options:
   """'

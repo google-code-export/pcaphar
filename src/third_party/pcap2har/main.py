@@ -30,8 +30,6 @@ path = os.path.join(os.path.dirname(__file__), "..")
 sys.path.append(os.path.abspath(path))
 dpkt_path = os.path.join(path, "dpkt")
 sys.path.append(os.path.abspath(dpkt_path))
-simplejson_path = os.path.join(path, "simplejson")
-sys.path.append(os.path.abspath(simplejson_path))
 
 
 

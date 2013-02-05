@@ -1,6 +1,7 @@
 import cgi
 import http
 import urlparse
+import base64
 from dpkt import http as dpkt_http
 
 class Request(http.Message):
@@ -27,6 +28,14 @@ class Request(http.Message):
     '''
     self = http.Request
     '''
+    postData = {}
+    postData['text'] = self.msg.body
+    try:
+      postData['text'] = postData['text'].encode('utf8')
+    except UnicodeDecodeError as e:
+      postData['encoding'] = "base64"
+      postData['text'] = base64.b64encode(self.msg.body)
+
     return {
       'method': self.msg.method,
       'url': self.url,
@@ -36,7 +45,5 @@ class Request(http.Message):
       'headersSize': -1,
       'headers': http.header_json_repr(self.msg.headers),
       'bodySize': len(self.msg.body),
-      'postData': {
-        'text': self.msg.body,
-      },
+      'postData': postData,
     }

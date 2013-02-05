@@ -7,7 +7,7 @@
 <table>
 <tr>
 <td valign="top">
-<a href=/ >Home</a>
+<a href=./ >Home</a>
 </td>
 
 {% ifequal hash_str "0" %}
@@ -16,10 +16,10 @@ Example Page Speed
 </td>
 {% else %}
 <td valign="top">
-<a href=/download/d/{{ hash_str }}>Download HAR</a>
+<a href=download/d/{{ hash_str }}>Download HAR</a>
 </td>
 <td valign="top">
-<a href=/view?hash_str={{ hash_str}}>HarViewer</a>
+<a href=view?hash_str={{ hash_str}}>HarViewer</a>
 </td>
 <td class="selected" valign="top">
 Har-to-PageSpeed

@@ -24,19 +24,12 @@ as well was a download link.
 __author__ = 'lsong@google.com (Libo Song)'
 
 import os
-os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
-
-from google.appengine.dist import use_library
-use_library('django', '1.2')
-
 import sys
 # add third_party directory to sys.path for global import
 path = os.path.join(os.path.dirname(__file__), "third_party")
 sys.path.append(os.path.abspath(path))
 dpkt_path = os.path.join(path, "dpkt")
 sys.path.append(os.path.abspath(dpkt_path))
-simplejson_path = os.path.join(path, "simplejson")
-sys.path.append(os.path.abspath(simplejson_path))
 
 import logging
 import hashlib
@@ -45,11 +38,14 @@ import time
 import zlib
 
 from google.appengine.ext import db
-from google.appengine.ext import webapp
-from google.appengine.ext.webapp.util import run_wsgi_app
-from google.appengine.ext.webapp import template
-from pcap2har import convert
 
+import webapp2
+
+import jinja2
+jinja_environment = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
+
+from pcap2har import convert
 class TimingRecord(db.Model):
   date = db.DateTimeProperty(auto_now_add=True)
   hash_str = db.StringProperty()
@@ -147,14 +143,13 @@ def LoadData(kind, hash_str):
   duration = time.time() - start_time
   return info.pcapname, data, duration
 
-class MainPage(webapp.RequestHandler):
+class MainPage(webapp2.RequestHandler):
   def get(self):
     template_values = {}
-    index_path = os.path.join(os.path.dirname(__file__),
-                              'templates/index.html')
-    self.response.out.write(template.render(index_path, template_values))
+    template = jinja_environment.get_template('templates/index.html')
+    self.response.out.write(template.render(template_values))
 
-class Pagespeed(webapp.RequestHandler):
+class Pagespeed(webapp2.RequestHandler):
   def get(self):
     host = GetRequestHostName(self.request)
     har_url = self.request.get('harurl')
@@ -169,11 +164,10 @@ class Pagespeed(webapp.RequestHandler):
       'har_url': har_url,
     }
 
-    pagespeed_path = os.path.join(os.path.dirname(__file__),
-                                  'templates/pagespeed.html')
-    self.response.out.write(template.render(pagespeed_path, template_values))
+    template = jinja_environment.get_template('templates/pagespeed.html')
+    self.response.out.write(template.render(template_values))
 
-class View(webapp.RequestHandler):
+class View(webapp2.RequestHandler):
   def get(self):
     host = GetRequestHostName(self.request)
     hash_str = self.request.get('hash_str')
@@ -184,20 +178,16 @@ class View(webapp.RequestHandler):
       'har_url': har_url,
     }
 
-    harview_path = os.path.join(os.path.dirname(__file__),
-                                'templates/harview.html')
-    self.response.out.write(template.render(harview_path, template_values))
+    template = jinja_environment.get_template('templates/harview.html')
+    self.response.out.write(template.render(template_values))
 
 
-
-class Converter(webapp.RequestHandler):
+class Converter(webapp2.RequestHandler):
   """
   Convert the uploaded file in PCAP to HAR.
   """
-  def __init__(self):
-    self.perf_record = TimingRecord()
-
   def GetUploadFile(self):
+    self.perf_record = TimingRecord()
     start = time.time()
     upload_input = self.request.get('upfile')
     self.perf_record.upload = time.time() - start
@@ -223,9 +213,8 @@ class Converter(webapp.RequestHandler):
       template_values = {
         'upfile_name': pcap_input_name,
       }
-      error_path = os.path.join(os.path.dirname(__file__),
-                                'templates/convert_error.html')
-      self.response.out.write(template.render(error_path, template_values))
+      template = jinja_environment.get_template('templates/convert_error.html')
+      self.response.out.write(template.render(template_values))
       return False
     return True
 
@@ -274,20 +263,18 @@ class Converter(webapp.RequestHandler):
     """
     self.redirect("/")
 
-class Download(webapp.RequestHandler):
+class Download(webapp2.RequestHandler):
   """
   Dowland handler.
 
   The converted HAR is shared across requests. Latest convert for the same pcap
   file will overwrite the content.
   """
-  def __init__(self):
-    self.perf_record = TimingRecord()
-
   def get(self, download, hash_str):
     """
     Process the download.
     """
+    self.perf_record = TimingRecord()
     total_time_start = time.time()
     name, data, duration = LoadData('har ', hash_str)
     self.perf_record.loadhar = duration
@@ -309,9 +296,9 @@ class Download(webapp.RequestHandler):
       headers['Content-Type'] = 'text/plain'
 
       if name[-4:] == '.har':
-        download_name = name
+        download_name = str(name)
       else:
-        download_name = name + '.har'
+        download_name = str(name) + '.har'
       headers['Content-disposition'] = 'attachment; filename=' + download_name
       self.response.out.write(data)
     self.perf_record.total = time.time() - total_time_start
@@ -320,7 +307,7 @@ class Download(webapp.RequestHandler):
     self.perf_record.put()
 
 
-class Timing(webapp.RequestHandler):
+class Timing(webapp2.RequestHandler):
   """
   Show timing info.
   """
@@ -363,11 +350,7 @@ class Timing(webapp.RequestHandler):
     self.response.out.write('Timing: ' + '%f'%time_start
                             + ' - ' + '%f'%time_end)
 
-def main():
-  """
-  The real main function.
-  """
-  application = webapp.WSGIApplication(
+app = webapp2.WSGIApplication(
       [('/', MainPage),
        ('/convert', Converter),
        ('/pagespeed', Pagespeed),
@@ -376,7 +359,3 @@ def main():
        (r'/download/(.*)/(.*)', Download),
        ],
       debug=True)
-  run_wsgi_app(application)
-
-if __name__ == "__main__":
-  main()

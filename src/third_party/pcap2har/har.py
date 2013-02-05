@@ -3,7 +3,7 @@ functions and classes for generating HAR data from parsed http data
 """
 import http
 import logging
-import simplejson as json
+import json
 
 
 # custom json encoder
