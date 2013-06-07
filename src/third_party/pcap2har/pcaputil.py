@@ -76,7 +76,6 @@ class ModifiedReader(object):
         elif self.__fh.magic != dpkt.pcap.TCPDUMP_MAGIC:
             raise ValueError, 'invalid tcpdump header'
         self.snaplen = self.__fh.snaplen
-        self.dloff = dpkt.pcap.dltoff[self.__fh.linktype]
         self.filter = ''
 
     def datalink(self):

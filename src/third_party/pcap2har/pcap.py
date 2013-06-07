@@ -1,6 +1,6 @@
 import dns
 import dpkt
-import logging as log
+import logging
 import StringIO
 import tcp
 from pcaputil import ModifiedReader
@@ -27,36 +27,48 @@ class TCPFlowAccumulator:
     self.options = options
     self.options.dns = dns.DNS()
     debug_pkt_count = 0
+
+    # Determine the packet type.
+    if (pcap_reader.datalink() == dpkt.pcap.DLT_EN10MB):
+      PacketClass = dpkt.ethernet.Ethernet
+    elif (pcap_reader.datalink() == dpkt.pcap.DLT_LINUX_SLL):
+      PacketClass = dpkt.sll.SLL
+    elif pcap_reader.datalink() == 101:
+      # RAW packet
+      PacketClass = None
+    else:
+      raise Exception("Unkown packet type: %d" % reader.datalink())
+
     try:
       for pkt in pcap_reader:
         debug_pkt_count += 1
-        #log.debug("Processing packet %d", debug_pkt_count)
+        logging.debug("Processing packet %d", debug_pkt_count)
         # discard incomplete packets
         header = pkt[2]
         if header.caplen != header.len:
           # packet is too short
-          log.warning('discarding incomplete packet')
+          logging.warning('discarding incomplete packet')
         # parse packet
+        if PacketClass:
+          packet = PacketClass(pkt[1])
+          ip_packet = packet.data
+        else:
+          packet = dpkt.ip.IP(pkt[1])
+          ip_packet = packet
+
         try:
-          dltoff = dpkt.pcap.dltoff
-          if pcap_reader.dloff == dltoff[dpkt.pcap.DLT_LINUX_SLL]:
-            eth = dpkt.sll.SLL(pkt[1])
-          else:
-            # TODO(lsong): Check other packet type. Default is ethernet.
-            eth = dpkt.ethernet.Ethernet(pkt[1])
-          if isinstance(eth.data, dpkt.ip.IP):
-            ip = eth.data
-            if self.options.dns.check_dns(pkt[0], ip):
+          if isinstance(ip_packet, dpkt.ip.IP):
+            if self.options.dns.check_dns(pkt[0], ip_packet):
               continue
-            if isinstance(ip.data, dpkt.tcp.TCP):
+            if isinstance(ip_packet.data, dpkt.tcp.TCP):
               # then it's a TCP packet process it
-              tcppkt = tcp.Packet(pkt[0], pkt[1], eth, ip, ip.data)
+              tcppkt = tcp.Packet(pkt[0], ip_packet, ip_packet.data)
               self.process_packet(tcppkt) # organize by socket
         except dpkt.Error, error:
-          log.warning(error)
+          logging.warning(error)
     except dpkt.dpkt.NeedData, error:
-      log.warning(error)
-      log.warning('A packet in the pcap file was too short, '
+      logging.warning(error)
+      logging.warning('A packet in the pcap file was too short, '
                   'debug_pkt_count=%d', debug_pkt_count)
     # finish all tcp flows
     map(tcp.Flow.finish, self.flowdict.itervalues())
@@ -71,16 +83,16 @@ class TCPFlowAccumulator:
     srcip, srcport = src
     dstip, dstport = dst
     if (srcport == 5223 or dstport == 5223):
-      log.debug("hpvirtgrp packets are ignored.")
+      logging.debug("hpvirtgrp packets are ignored.")
       return
     if (srcport == 5228 or dstport == 5228):
-      log.debug("hpvroom packets are ignored.")
+      logging.debug("hpvroom packets are ignored.")
       return
     if (srcport == 443 or dstport == 443):
-      log.debug("HTTPS packets are ignored.")
+      logging.debug("HTTPS packets are ignored.")
       return
     if (srcport == 53 or dstport == 53):
-      log.debug("DNS TCP packets are ignored.")
+      logging.debug("DNS TCP packets are ignored.")
       return
 
     if (src, dst) in self.flowdict:

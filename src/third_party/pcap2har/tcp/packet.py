@@ -8,8 +8,6 @@ class Packet(object):
 
   Members:
   ts = dpkt timestamp
-  buf = original data from which eth was constructed
-  eth = dpkt.ethernet.Ethernet. Original ethernet frame.
   ip = dpkt.ip.IP. Original IP packet.
   tcp = dpkt.tcp.TCP.
   socket = standard socket tuple: ((srcip, sport), (dstip, dport))
@@ -18,18 +16,15 @@ class Packet(object):
   seq_end = first sequence number past this packets data (past the end slice
     index style)
   '''
-  def __init__(self, ts, buf, eth, ip, tcp):
+  def __init__(self, ts, ip, tcp):
     '''
     Args:
     ts = timestamp
     buf = original packet data
-    eth = dpkt.ethernet.Ethernet that the packet came from
     ip  = dpkt.ip.IP that the packet came from
     tcp = dpkt.tcp.TCP that the packet came from
     '''
     self.ts = ts
-    self.buf = buf
-    self.eth = eth
     self.ip = ip
     self.tcp = tcp
     self.socket = ((self.ip.src, self.tcp.sport),(self.ip.dst, self.tcp.dport))
