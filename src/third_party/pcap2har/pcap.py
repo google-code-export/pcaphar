@@ -5,6 +5,7 @@ import StringIO
 import tcp
 from pcaputil import ModifiedReader
 
+
 class TCPFlowAccumulator:
   '''
   Takes a list of TCP packets and organizes them into distinct
@@ -15,6 +16,7 @@ class TCPFlowAccumulator:
   Members:
   flowdict = {socket: tcp.Flow}, the list of tcp.Flow's organized by socket
   '''
+
   def __init__(self, pcap_reader, options):
     '''
     scans the pcap_reader for TCP packets, and adds them to the tcp.Flow
@@ -33,6 +35,9 @@ class TCPFlowAccumulator:
       PacketClass = dpkt.ethernet.Ethernet
     elif (pcap_reader.datalink() == dpkt.pcap.DLT_LINUX_SLL):
       PacketClass = dpkt.sll.SLL
+    elif pcap_reader.datalink() == 0:
+      # Loopback packet
+      PacketClass = dpkt.loopback.Loopback
     elif pcap_reader.datalink() == 101:
       # RAW packet
       PacketClass = None
@@ -100,7 +105,7 @@ class TCPFlowAccumulator:
     elif (dst, src) in self.flowdict:
       self.flowdict[(dst, src)].add(pkt)
     else:
-      #log.debug("New flow: s:%d -> d:%d", srcport, dstport)
+      # log.debug("New flow: s:%d -> d:%d", srcport, dstport)
       newflow = tcp.Flow(self.options)
       newflow.add(pkt)
       self.flowdict[(src, dst)] = newflow
