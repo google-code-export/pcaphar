@@ -38,10 +38,17 @@ class Flow:
           if self.print_log_out_of_order:
             logging.info("Non-data packet may be out of chronological order.")
             self.print_log_out_of_order = False
+        elif (self.packets[-1].data == pkt.data and
+              self.packets[-1].seq == pkt.seq and
+              self.packets[-1].ack == pkt.ack):
+          logging.info("Retransmission ignored.")
         else:
-          raise ValueError(
+          logging.info(
               "packet added to TCPFlow out of chronological order %f > %f" %
               (self.packets[-1].ts , pkt.ts))
+          #raise ValueError(
+          #    "packet added to TCPFlow out of chronological order %f > %f" %
+          #    (self.packets[-1].ts , pkt.ts))
     self.packets.append(pkt)
     # look out for handshake
     # add it to the appropriate direction, if we've found or given up on

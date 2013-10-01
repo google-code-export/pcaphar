@@ -47,7 +47,7 @@ class TCPFlowAccumulator:
     try:
       for pkt in pcap_reader:
         debug_pkt_count += 1
-        logging.debug("Processing packet %d", debug_pkt_count)
+        # logging.debug("Processing packet %d", debug_pkt_count)
         # discard incomplete packets
         header = pkt[2]
         if header.caplen != header.len:
